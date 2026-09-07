@@ -45,6 +45,7 @@ def _make_mock_nxopen():
     # --- Features ---
     mock_work_part.Features = MagicMock()
     mock_work_part.Features.ToArray = MagicMock(return_value=mock_features)
+    mock_work_part.Features.__iter__.side_effect = lambda: iter(mock_features)
 
     # --- Bodies ---
     mock_work_part.Bodies = MagicMock()

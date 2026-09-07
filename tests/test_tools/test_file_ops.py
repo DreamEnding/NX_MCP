@@ -40,6 +40,7 @@ def _make_mock_nxopen():
     base_part.Units.Inches = "Inches"
     base_part.SaveComponents = MagicMock()
     base_part.SaveComponents.TrueValue = "TrueValue"
+    base_part.SaveComponents.FalseValue = "FalseValue"
     base_part.CloseAfterSave = MagicMock()
     base_part.CloseAfterSave.FalseValue = "FalseValue"
     base_part.CloseModified = MagicMock()

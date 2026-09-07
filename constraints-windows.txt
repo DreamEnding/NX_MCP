@@ -1,0 +1,4 @@
+# Versions verified with NX v2606; transitive pins live in requirements-windows.lock.
+mcp==1.29.1
+pydantic==2.13.5
+pywin32==311

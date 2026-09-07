@@ -1,0 +1,5513 @@
+{
+  "tab": {
+    "builder": "TabBuilder",
+    "factory": "CreateTabFeatureBuilder",
+    "fields": {
+      "is_secondary": {
+        "path": "IsSecondary",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "material_side": {
+        "path": "MaterialSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "TabBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "multi_thickness_property": {
+        "path": "MultiThicknessProperty",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "multi_thickness_toggle": {
+            "path": "MultiThicknessToggle",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "zone_name": {
+            "path": "ZoneName",
+            "getter": false,
+            "kind": "string"
+          }
+        }
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "target_body": {
+        "path": "TargetBody",
+        "getter": false,
+        "kind": "body",
+        "assign": true
+      },
+      "thickness": {
+        "path": "Thickness",
+        "getter": false,
+        "kind": "expression"
+      },
+      "thickness_side": {
+        "path": "ThicknessSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "TabBuilderThicknessSideOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "multi_bends": {
+        "kind": "object_list",
+        "container": "MultiBendPropertiesList",
+        "sequence": "FeatureBendPropertiesList",
+        "creator": "CreateFeatureProperties",
+        "fields": {
+          "bend_options": {
+            "path": "BendOptions",
+            "getter": false,
+            "kind": "object",
+            "fields": {
+              "bend_radius": {
+                "path": "BendRadius",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_depth": {
+                "path": "BendReliefDepth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_type": {
+                "path": "BendReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsBendReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "Square",
+                  "Round"
+                ]
+              },
+              "bend_relief_width": {
+                "path": "BendReliefWidth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "corner_relief_type": {
+                "path": "CornerReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsCornerReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "BendOnly",
+                  "BendAndFace",
+                  "BendAndFaceChain"
+                ]
+              },
+              "die_tool_id": {
+                "path": "DieToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "die_tool_id_name": {
+                "path": "DieToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "extend_bend_relief": {
+                "path": "ExtendBendRelief",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "include_relief_in_width": {
+                "path": "IncludeReliefInWidth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "neutral_factor": {
+                "path": "NeutralFactor",
+                "getter": false,
+                "kind": "expression"
+              },
+              "override_tool_set": {
+                "path": "OverrideToolSet",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "punch_tool_id": {
+                "path": "PunchToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "punch_tool_id_name": {
+                "path": "PunchToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "use_global_bend_radius": {
+                "path": "UseGlobalBendRadius",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_neutral_factor": {
+                "path": "UseGlobalNeutralFactor",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_depth": {
+                "path": "UseGlobalReliefDepth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_width": {
+                "path": "UseGlobalReliefWidth",
+                "getter": false,
+                "kind": "boolean"
+              }
+            }
+          },
+          "value": {
+            "path": "Value",
+            "getter": false,
+            "kind": "expression"
+          }
+        },
+        "required": []
+      }
+    },
+    "required": [
+      "section",
+      "thickness"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "100 x 80 mm rectangular tab, thickness 2 mm; successful save and close",
+    "edit_status": "experimental"
+  },
+  "flange": {
+    "builder": "MultiFlangeBuilder",
+    "factory": "CreateMultiFlangeBuilder",
+    "fields": {
+      "match_face": {
+        "path": "MatchFace",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "MultiFlangeBuilderMatchFaceOptions",
+        "values": [
+          "NotSet",
+          "UntilSelected"
+        ]
+      },
+      "multi_thickness_property": {
+        "path": "MultiThicknessProperty",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "multi_thickness_toggle": {
+            "path": "MultiThicknessToggle",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "zone_name": {
+            "path": "ZoneName",
+            "getter": false,
+            "kind": "string"
+          }
+        }
+      },
+      "plane": {
+        "path": "Plane",
+        "getter": false,
+        "kind": "plane",
+        "assign": true
+      },
+      "flanges": {
+        "kind": "flange_list",
+        "required": [
+          "edges",
+          "length",
+          "angle"
+        ],
+        "fields": {
+          "angle": {
+            "path": "Angle",
+            "getter": false,
+            "kind": "expression"
+          },
+          "distance1": {
+            "path": "Distance1",
+            "getter": false,
+            "kind": "expression"
+          },
+          "distance2": {
+            "path": "Distance2",
+            "getter": false,
+            "kind": "expression"
+          },
+          "edges": {
+            "path": "Edges",
+            "getter": false,
+            "kind": "collector",
+            "assign": false,
+            "objects": "edge"
+          },
+          "inset": {
+            "path": "Inset",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "FlangeBendPropertiesBuilderInsets",
+            "values": [
+              "MaterialInside",
+              "MaterialOutside",
+              "BendOutside",
+              "MaterialInsideOML"
+            ]
+          },
+          "keypoint": {
+            "path": "Keypoint",
+            "getter": false,
+            "kind": "point",
+            "assign": true,
+            "description": "Work-part coordinate point for length_option=Keypoint; that mode is not verified by the numeric-length fixture."
+          },
+          "length": {
+            "path": "Length",
+            "getter": false,
+            "kind": "expression"
+          },
+          "length_option": {
+            "path": "LengthOption",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "FlangeBendPropertiesBuilderLengthOptions",
+            "values": [
+              "Value",
+              "Keypoint"
+            ],
+            "description": "Value uses length; Keypoint uses the supplied keypoint. This contract still requires length and angle in every flange entry. The recorded example verifies numeric length only."
+          },
+          "length_reference": {
+            "path": "LengthReference",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "FlangeBendPropertiesBuilderLengthReferences",
+            "values": [
+              "Inside",
+              "Outside",
+              "Web",
+              "Tangent"
+            ]
+          },
+          "miter": {
+            "path": "Miter",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "offset": {
+            "path": "Offset",
+            "getter": false,
+            "kind": "expression"
+          },
+          "point": {
+            "path": "Point",
+            "getter": false,
+            "kind": "point",
+            "assign": true
+          },
+          "reverse_direction_length": {
+            "path": "ReverseDirectionLength",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "reverse_direction_offset": {
+            "path": "ReverseDirectionOffset",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_recipe": {
+            "path": "UseRecipe",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "width": {
+            "path": "Width",
+            "getter": false,
+            "kind": "expression"
+          },
+          "width_option": {
+            "path": "WidthOption",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "FlangeBendPropertiesBuilderWidthOptions",
+            "values": [
+              "Full",
+              "AtCenter",
+              "AtEnd",
+              "FromEnd",
+              "FromBothEnds"
+            ],
+            "description": "Full uses the selected edge width. The native AtCenter fixture supplies width=60 on a 100 mm edge. AtEnd/FromEnd/FromBothEnds positioning combinations are not verified by that fixture."
+          },
+          "bend_options": {
+            "kind": "object",
+            "path": "BendOptions",
+            "fields": {
+              "bend_radius": {
+                "path": "BendRadius",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_depth": {
+                "path": "BendReliefDepth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_type": {
+                "path": "BendReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsBendReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "Square",
+                  "Round"
+                ]
+              },
+              "bend_relief_width": {
+                "path": "BendReliefWidth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "corner_relief_type": {
+                "path": "CornerReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsCornerReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "BendOnly",
+                  "BendAndFace",
+                  "BendAndFaceChain"
+                ]
+              },
+              "die_tool_id": {
+                "path": "DieToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "die_tool_id_name": {
+                "path": "DieToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "extend_bend_relief": {
+                "path": "ExtendBendRelief",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "include_relief_in_width": {
+                "path": "IncludeReliefInWidth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "neutral_factor": {
+                "path": "NeutralFactor",
+                "getter": false,
+                "kind": "expression"
+              },
+              "override_tool_set": {
+                "path": "OverrideToolSet",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "punch_tool_id": {
+                "path": "PunchToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "punch_tool_id_name": {
+                "path": "PunchToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "use_global_bend_radius": {
+                "path": "UseGlobalBendRadius",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_neutral_factor": {
+                "path": "UseGlobalNeutralFactor",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_depth": {
+                "path": "UseGlobalReliefDepth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_width": {
+                "path": "UseGlobalReliefWidth",
+                "getter": false,
+                "kind": "boolean"
+              }
+            },
+            "description": "For explicit relief/radius/neutral-factor overrides, set the corresponding use_global_* flag false; otherwise the native global setting may remain active."
+          }
+        }
+      }
+    },
+    "required": [
+      "flanges"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "90-degree flange, radius and neutral factor read-back; length edited from 20 to 25 mm",
+    "edit_status": "tested_scoped",
+    "example_parameters": {
+      "flanges": [
+        {
+          "edges": [
+            "$input_1"
+          ],
+          "length": 20,
+          "length_reference": "Inside",
+          "angle": 90
+        }
+      ]
+    },
+    "example_evidence": {
+      "source": "examples/validate_sheet_metal.py",
+      "validation": "native_fixture",
+      "scope": "100 x 80 x 2 mm XY tab; edge nearest [50,0,0]; 20 mm Inside-length flange at 90 degrees. Numeric values are fixture millimeters."
+    },
+    "prerequisites": [
+      "Select a boundary edge of an existing sheet-metal tab, not an arbitrary solid edge. The recorded fixture uses the 100 mm edge at y=0, z=0 on a 100 x 80 x 2 mm tab.",
+      "Each flanges entry requires edges, length and angle, including when replacing the list during an edit. Supplying flanges replaces the complete native flange list.",
+      "For width_option=AtCenter, supply width; the native channel fixture used width=60 on a 100 mm edge. Other width modes require their native positioning inputs and are not covered by this example.",
+      "For length_option=Keypoint, supply keypoint in work-part coordinates as well as the contract-required length and angle. Keypoint mode is exposed but this example only verifies numeric length."
+    ]
+  },
+  "contour_flange": {
+    "builder": "ContourFlangeBuilder",
+    "factory": "CreateContourFlangeFeatureBuilder",
+    "fields": {
+      "thickness": {
+        "path": "GetThickness",
+        "getter": true,
+        "kind": "expression"
+      },
+      "sweep_distance": {
+        "path": "GetSweepDistance",
+        "getter": true,
+        "kind": "expression"
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "edge_chain": {
+        "path": "EdgeChain",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "is_secondary": {
+        "path": "IsSecondary",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "miter_options": {
+        "path": "MiterOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "start_value": {
+            "path": "GetStartValue",
+            "getter": true,
+            "kind": "expression"
+          },
+          "end_value": {
+            "path": "GetEndValue",
+            "getter": true,
+            "kind": "expression"
+          },
+          "closed_corner_diameter": {
+            "path": "GetClosedCornerDiameter",
+            "getter": true,
+            "kind": "expression"
+          },
+          "blend_miter": {
+            "path": "BlendMiter",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "closed_corner_gap": {
+            "path": "ClosedCornerGap",
+            "getter": false,
+            "kind": "expression"
+          },
+          "closed_corner_type": {
+            "path": "ClosedCornerType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "MiterOptionsClosedCornerTypeOptions",
+            "values": [
+              "NotSet",
+              "Open",
+              "Closed",
+              "CircularCutout",
+              "UCutout",
+              "VCutout"
+            ]
+          },
+          "closed_cornerv_angle1": {
+            "path": "ClosedCornerVAngle1",
+            "getter": false,
+            "kind": "expression"
+          },
+          "closed_cornerv_angle2": {
+            "path": "ClosedCornerVAngle2",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_treatment_offset": {
+            "path": "CornerTreatmentOffset",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_treatment_origin_type": {
+            "path": "CornerTreatmentOriginType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "MiterOptionsCornerTreatmentOriginTypeOptions",
+            "values": [
+              "BendCenter",
+              "CornerPoint"
+            ]
+          },
+          "end_type": {
+            "path": "EndType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "MiterOptionsTypeOptions",
+            "values": [
+              "NormalToSourceFace",
+              "NormalToThicknessFace"
+            ]
+          },
+          "miter_corner": {
+            "path": "MiterCorner",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "miter_interior_corners_if_necessary": {
+            "path": "MiterInteriorCornersIfNecessary",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "miter_root_radius": {
+            "path": "MiterRootRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "position": {
+            "path": "Position",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "MiterOptionsPositionOptions",
+            "values": [
+              "NotSet",
+              "Start",
+              "End",
+              "Both"
+            ]
+          },
+          "start_type": {
+            "path": "StartType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "MiterOptionsTypeOptions",
+            "values": [
+              "NormalToSourceFace",
+              "NormalToThicknessFace"
+            ]
+          },
+          "three_bend_corner_flange_clearance": {
+            "path": "ThreeBendCornerFlangeClearance",
+            "getter": false,
+            "kind": "expression"
+          },
+          "use_normal_cutout_method": {
+            "path": "UseNormalCutoutMethod",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "sweep_side": {
+        "path": "SweepSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ContourFlangeBuilderSweepSideOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "sweep_type": {
+        "path": "SweepType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ContourFlangeBuilderSweepTypeOptions",
+        "values": [
+          "Finite",
+          "Symmetric",
+          "ToEnd",
+          "Chain"
+        ]
+      },
+      "thickness_side": {
+        "path": "ThicknessSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ContourFlangeBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      }
+    },
+    "required": [
+      "section",
+      "thickness",
+      "sweep_distance"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "thickness": 2,
+      "sweep_distance": 40
+    },
+    "edit_status": "experimental"
+  },
+  "lofted_flange": {
+    "builder": "LoftedFlangeBuilder",
+    "factory": "CreateLoftedFlangeFeatureBuilder",
+    "fields": {
+      "thickness": {
+        "path": "GetThickness",
+        "getter": true,
+        "kind": "expression"
+      },
+      "auto_relief_type": {
+        "path": "AutoReliefType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LoftedFlangeBuilderAutoReliefTypes",
+        "values": [
+          "Linear",
+          "Spherical"
+        ]
+      },
+      "bend_divide_parameter": {
+        "path": "BendDivideParameter",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LoftedFlangeBuilderBendDivideParameters",
+        "values": [
+          "NumberOfBendSegments",
+          "MaximumChordHeight",
+          "MaximumSegmentLength",
+          "MaximumSegmentAngle"
+        ]
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "bending_method": {
+        "path": "BendingMethod",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LoftedFlangeBuilderBendingMethods",
+        "values": [
+          "Formed",
+          "Advanced",
+          "Bends"
+        ]
+      },
+      "end_section": {
+        "path": "EndSection",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "end_section_point": {
+        "path": "EndSectionPoint",
+        "getter": false,
+        "kind": "point3d",
+        "assign": true
+      },
+      "index_mark_length": {
+        "path": "IndexMarkLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "is_secondary": {
+        "path": "IsSecondary",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "maximum_chord_height": {
+        "path": "MaximumChordHeight",
+        "getter": false,
+        "kind": "expression"
+      },
+      "maximum_segment_angle": {
+        "path": "MaximumSegmentAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "maximum_segment_length": {
+        "path": "MaximumSegmentLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "number_of_bend_segments": {
+        "path": "NumberOfBendSegments",
+        "getter": false,
+        "kind": "integer"
+      },
+      "start_section": {
+        "path": "StartSection",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "start_section_point": {
+        "path": "StartSectionPoint",
+        "getter": false,
+        "kind": "point3d",
+        "assign": true
+      },
+      "thickness_side": {
+        "path": "ThicknessSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LoftedFlangeBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "trim_end_plates": {
+        "path": "TrimEndPlates",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "use_segmented_bends": {
+        "path": "UseSegmentedBends",
+        "getter": false,
+        "kind": "boolean"
+      }
+    },
+    "required": [
+      "start_section",
+      "end_section",
+      "thickness"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "start_section": "$input_1",
+      "end_section": "$input_2",
+      "thickness": 2,
+      "start_section_point": [
+        0,
+        0,
+        0
+      ],
+      "end_section_point": [
+        0,
+        0,
+        40
+      ],
+      "number_of_bend_segments": 8,
+      "bending_method": "Formed",
+      "use_segmented_bends": false
+    },
+    "edit_status": "experimental"
+  },
+  "bend": {
+    "builder": "BendBuilder",
+    "factory": "CreateBendFeatureBuilder",
+    "fields": {
+      "bend_angle": {
+        "path": "GetBendAngle",
+        "getter": true,
+        "kind": "expression"
+      },
+      "bend_location": {
+        "path": "BendLocation",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendBuilderBendLocationOptions",
+        "values": [
+          "OuterMoldLine",
+          "CenterLine",
+          "InnerMoldLine",
+          "MaterialInside",
+          "MaterialOutside"
+        ]
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "direction": {
+        "path": "Direction",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendBuilderBendDirectionOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "extend_profile": {
+        "path": "ExtendProfile",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "fixed_side": {
+        "path": "FixedSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendBuilderFixedSideOptions",
+        "values": [
+          "SectionSideLeft",
+          "SectionSideRight"
+        ]
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "target_face": {
+        "path": "TargetFace",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      }
+    },
+    "required": [
+      "section",
+      "target_face",
+      "bend_angle"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "target_face": "$input_2",
+      "bend_angle": 90
+    },
+    "edit_status": "experimental"
+  },
+  "jog": {
+    "builder": "JogBuilder",
+    "factory": "CreateJogFeatureBuilder",
+    "fields": {
+      "height": {
+        "path": "GetHeight",
+        "getter": true,
+        "kind": "expression"
+      },
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_location": {
+        "path": "BendLocation",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "JogBuilderBendLocationOptions",
+        "values": [
+          "MaterialInside",
+          "MaterialOutside",
+          "BendOutside"
+        ]
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "dimension_type": {
+        "path": "DimensionType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "JogBuilderDimensionTypeOptions",
+        "values": [
+          "Offset",
+          "Full"
+        ]
+      },
+      "direction_type": {
+        "path": "DirectionType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "JogBuilderDirectionTypeOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "extend_profile": {
+        "path": "ExtendProfile",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "fixed_side": {
+        "path": "FixedSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "JogBuilderFixedSideOptions",
+        "values": [
+          "SectionSideLeft",
+          "SectionSideRight"
+        ]
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "target_face": {
+        "path": "TargetFace",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      }
+    },
+    "required": [
+      "section",
+      "target_face",
+      "height"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "target_face": "$input_2",
+      "height": 10,
+      "angle": 90
+    },
+    "edit_status": "experimental"
+  },
+  "hem": {
+    "builder": "HemFlangeBuilder",
+    "factory": "CreateHemFlangeFeatureBuilder",
+    "fields": {
+      "bend_relief_depth": {
+        "path": "BendReliefDepth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_relief_type": {
+        "path": "BendReliefType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "HemFlangeBuilderBendReliefOptions",
+        "values": [
+          "Square",
+          "Round",
+          "NotSet"
+        ]
+      },
+      "bend_relief_width": {
+        "path": "BendReliefWidth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "edge_chain": {
+        "path": "EdgeChain",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "equal_radii": {
+        "path": "EqualRadii",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "first_bend_radius": {
+        "path": "FirstBendRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "first_flange_length": {
+        "path": "FirstFlangeLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "inset_type": {
+        "path": "InsetType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "HemFlangeBuilderInsetTypeOptions",
+        "values": [
+          "MaterialInside",
+          "MaterialOutside",
+          "BendOutside"
+        ]
+      },
+      "miter_angle": {
+        "path": "MiterAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "neutral_factor": {
+        "path": "NeutralFactor",
+        "getter": false,
+        "kind": "expression"
+      },
+      "second_bend_radius": {
+        "path": "SecondBendRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "second_flange_length": {
+        "path": "SecondFlangeLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "sweep_angle": {
+        "path": "SweepAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "HemFlangeBuilderTypeOptions",
+        "values": [
+          "ClosedHemType",
+          "OpenHemType",
+          "SFlangeHemType",
+          "CurlHemType",
+          "OpenLoopHemType",
+          "ClosedLoopHemType",
+          "CenteredLoopHemType"
+        ]
+      },
+      "use_miter": {
+        "path": "UseMiter",
+        "getter": false,
+        "kind": "boolean"
+      }
+    },
+    "required": [
+      "edge_chain"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "edge_chain": [
+        "$input_1"
+      ],
+      "type": "OpenHemType",
+      "first_flange_length": 10,
+      "first_bend_radius": 2
+    },
+    "edit_status": "experimental"
+  },
+  "normal_cutout": {
+    "builder": "NormalCutoutBuilder",
+    "factory": "CreateNormalCutoutFeatureBuilder",
+    "fields": {
+      "cut_type": {
+        "path": "CutType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "NormalCutoutBuilderCutTypeOptions",
+        "values": [
+          "ThicknessCut",
+          "MidPlaneCut",
+          "NearestFaceCut"
+        ]
+      },
+      "depth": {
+        "path": "Depth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "depth_side": {
+        "path": "DepthSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "NormalCutoutBuilderDepthSideOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide",
+          "Symmetric"
+        ]
+      },
+      "depth_type": {
+        "path": "DepthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "NormalCutoutBuilderDepthTypeOptions",
+        "values": [
+          "Finite",
+          "FromTo",
+          "ThroughNext",
+          "ThroughAll"
+        ]
+      },
+      "from": {
+        "path": "From",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "section_side": {
+        "path": "SectionSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "NormalCutoutBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "target_body": {
+        "path": "TargetBody",
+        "getter": false,
+        "kind": "body",
+        "assign": true
+      },
+      "to": {
+        "path": "To",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "NormalCutoutBuilderTypeOptions",
+        "values": [
+          "SketchType",
+          "NonPlanarCurveType"
+        ]
+      }
+    },
+    "required": [
+      "section",
+      "target_body"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "target_body": "$input_2",
+      "depth_type": "ThroughAll",
+      "depth_side": "Symmetric",
+      "depth": 5
+    },
+    "edit_status": "experimental"
+  },
+  "bead": {
+    "builder": "BeadBuilder",
+    "factory": "CreateBeadFeatureBuilder",
+    "fields": {
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "cross_section_type": {
+        "path": "CrossSectionType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BeadBuilderCrossSectionTypeOptions",
+        "values": [
+          "Circular",
+          "Ushaped",
+          "Vshaped"
+        ]
+      },
+      "die_radius": {
+        "path": "DieRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "end_type": {
+        "path": "EndType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BeadBuilderEndTypeOptions",
+        "values": [
+          "Punched",
+          "Lanced",
+          "Formed",
+          "Tapered"
+        ]
+      },
+      "height": {
+        "path": "Height",
+        "getter": false,
+        "kind": "expression"
+      },
+      "height_side": {
+        "path": "HeightSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BeadBuilderHeightSideOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "include_rounding": {
+        "path": "IncludeRounding",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "minimum_tool_clearance": {
+        "path": "MinimumToolClearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "punch_radius": {
+        "path": "PunchRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "punched_width": {
+        "path": "PunchedWidth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "radius": {
+        "path": "Radius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "taper_distance": {
+        "path": "TaperDistance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      }
+    },
+    "required": [
+      "section"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "height": 3,
+      "width": 8,
+      "cross_section_type": "Ushaped",
+      "angle": 45,
+      "end_type": "Formed",
+      "punched_width": 8,
+      "radius": 3,
+      "punch_radius": 2,
+      "die_radius": 2,
+      "taper_distance": 5
+    },
+    "edit_status": "experimental"
+  },
+  "dimple": {
+    "builder": "DimpleBuilder",
+    "factory": "CreateDimpleFeatureBuilder",
+    "fields": {
+      "depth": {
+        "path": "GetDepth",
+        "getter": true,
+        "kind": "expression"
+      },
+      "taper_angle": {
+        "path": "GetTaperAngle",
+        "getter": true,
+        "kind": "expression"
+      },
+      "punch_radius": {
+        "path": "GetPunchRadius",
+        "getter": true,
+        "kind": "expression"
+      },
+      "die_radius": {
+        "path": "GetDieRadius",
+        "getter": true,
+        "kind": "expression"
+      },
+      "fillet_radius": {
+        "path": "GetFilletRadius",
+        "getter": true,
+        "kind": "expression"
+      },
+      "depth_type": {
+        "path": "DepthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DimpleBuilderDepthTypeOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "dimension_type": {
+        "path": "DimensionType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DimpleBuilderDimensionTypeOptions",
+        "values": [
+          "Offset",
+          "Full"
+        ]
+      },
+      "fillet_section_corners": {
+        "path": "FilletSectionCorners",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "include_rounding": {
+        "path": "IncludeRounding",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "minimum_tool_clearance": {
+        "path": "MinimumToolClearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "section_side": {
+        "path": "SectionSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DimpleBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "sidewall_type": {
+        "path": "SidewallType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DimpleBuilderSidewallTypeOptions",
+        "values": [
+          "Outside",
+          "Inside"
+        ]
+      }
+    },
+    "required": [
+      "section"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "depth": 3,
+      "taper_angle": 15,
+      "include_rounding": false
+    },
+    "edit_status": "experimental"
+  },
+  "louver": {
+    "builder": "LouverBuilder",
+    "factory": "CreateLouverFeatureBuilder",
+    "fields": {
+      "depth": {
+        "path": "Depth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "depth_side": {
+        "path": "DepthSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LouverBuilderDepthSideOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "die_radius": {
+        "path": "DieRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "end_type": {
+        "path": "EndType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LouverBuilderEndTypeOptions",
+        "values": [
+          "Formed",
+          "Lanced"
+        ]
+      },
+      "include_rounding": {
+        "path": "IncludeRounding",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "minimum_tool_clearance": {
+        "path": "MinimumToolClearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "section_side": {
+        "path": "SectionSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LouverBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      }
+    },
+    "required": [
+      "section"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "depth": 3,
+      "width": 12,
+      "end_type": "Lanced",
+      "include_rounding": false,
+      "depth_side": "SectionNormalSide",
+      "section_side": "Left",
+      "minimum_tool_clearance": 0.1
+    },
+    "edit_status": "experimental"
+  },
+  "drawn_cutout": {
+    "builder": "DrawnCutoutBuilder",
+    "factory": "CreateDrawnCutoutFeatureBuilder",
+    "fields": {
+      "corner_radius": {
+        "path": "CornerRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "cutout_depth": {
+        "path": "CutoutDepth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "depth_type": {
+        "path": "DepthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DrawnCutoutBuilderDepthTypeOptions",
+        "values": [
+          "SectionNormalSide",
+          "SectionReverseNormalSide"
+        ]
+      },
+      "fillet_section_corners": {
+        "path": "FilletSectionCorners",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "include_rounding": {
+        "path": "IncludeRounding",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "minimum_tool_clearance": {
+        "path": "MinimumToolClearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "radius_of_die": {
+        "path": "RadiusOfDie",
+        "getter": false,
+        "kind": "expression"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "section_side": {
+        "path": "SectionSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DrawnCutoutBuilderSectionSideOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "side_angle": {
+        "path": "SideAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "sidewall_type": {
+        "path": "SidewallType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "DrawnCutoutBuilderSidewallTypeOptions",
+        "values": [
+          "Outside",
+          "Inside"
+        ]
+      }
+    },
+    "required": [
+      "section"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "cutout_depth": 5,
+      "side_angle": 60,
+      "include_rounding": false
+    },
+    "edit_status": "experimental"
+  },
+  "gusset": {
+    "builder": "GussetBuilder",
+    "factory": "CreateGussetBuilder",
+    "fields": {
+      "bend_face": {
+        "path": "BendFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "corner_radius": {
+        "path": "CornerRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "datum_plane": {
+        "path": "DatumPlane",
+        "getter": false,
+        "kind": "plane",
+        "assign": true
+      },
+      "depth": {
+        "path": "Depth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "die_radius": {
+        "path": "DieRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "placement_count": {
+        "path": "PlacementCount",
+        "getter": false,
+        "kind": "integer"
+      },
+      "placement_distance": {
+        "path": "PlacementDistance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "placement_spacing": {
+        "path": "PlacementSpacing",
+        "getter": false,
+        "kind": "expression"
+      },
+      "placement_type": {
+        "path": "PlacementType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "GussetBuilderPlacementTypes",
+        "values": [
+          "Single",
+          "Fit",
+          "Fill",
+          "Fixed"
+        ]
+      },
+      "punch_radius": {
+        "path": "PunchRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": false
+      },
+      "shape": {
+        "path": "Shape",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "GussetBuilderShapes",
+        "values": [
+          "Square",
+          "Round"
+        ]
+      },
+      "side_angle": {
+        "path": "SideAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "start_edge": {
+        "path": "StartEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "GussetBuilderTypes",
+        "values": [
+          "AutomaticProfile",
+          "UserDefinedProfile"
+        ]
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      },
+      "width_side": {
+        "path": "WidthSide",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "GussetBuilderWidthSides",
+        "values": [
+          "Side1",
+          "Side2",
+          "Symmetric"
+        ]
+      }
+    },
+    "required": [
+      "bend_face"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_face": "$input_1",
+      "type": "AutomaticProfile",
+      "datum_plane": {
+        "origin": [
+          50,
+          0,
+          0
+        ],
+        "normal": [
+          1,
+          0,
+          0
+        ]
+      },
+      "width": 10,
+      "depth": 6,
+      "side_angle": 45,
+      "punch_radius": 1,
+      "die_radius": 1
+    },
+    "edit_status": "experimental"
+  },
+  "edge_rip": {
+    "builder": "EdgeRipBuilder",
+    "factory": "CreateEdgeRipFeatureBuilder",
+    "fields": {
+      "blend_radius": {
+        "path": "BlendRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "blend_sharp_corners": {
+        "path": "BlendSharpCorners",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "end_cap_shape": {
+        "path": "EndCapShape",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "EdgeRipBuilderEndCapShapeOptions",
+        "values": [
+          "Square",
+          "Round"
+        ]
+      },
+      "reverse_width_direction": {
+        "path": "ReverseWidthDirection",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "symmetric": {
+        "path": "Symmetric",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "use_system_width": {
+        "path": "UseSystemWidth",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      },
+      "rip_edges": {
+        "kind": "reference_list",
+        "objects": "edge",
+        "method": "SetRipEdges"
+      }
+    },
+    "required": [],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "section": "$input_1",
+      "width": 0.5,
+      "symmetric": true,
+      "use_system_width": false,
+      "end_cap_shape": "Round"
+    },
+    "edit_status": "experimental"
+  },
+  "break_corner": {
+    "builder": "BreakCornerBuilder",
+    "factory": "CreateBreakCornerFeatureBuilder",
+    "fields": {
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BreakCornerBuilderTypeOptions",
+        "values": [
+          "Fillet",
+          "ChamferEqualSetback"
+        ]
+      },
+      "value": {
+        "path": "Value",
+        "getter": false,
+        "kind": "expression"
+      },
+      "edges": {
+        "kind": "reference_list",
+        "objects": "edge",
+        "method": "SetEdges"
+      },
+      "faces": {
+        "kind": "reference_list",
+        "objects": "face",
+        "method": "SetFaces"
+      }
+    },
+    "required": [],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "edges": [
+        "$input_1"
+      ],
+      "type": "Fillet",
+      "value": 3
+    },
+    "edit_status": "experimental"
+  },
+  "closed_corner": {
+    "builder": "ClosedCornerBuilder",
+    "factory": "CreateClosedCornerFeatureBuilder",
+    "fields": {
+      "blend_miter": {
+        "path": "BlendMiter",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "blend_miter_radius": {
+        "path": "BlendMiterRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "cut_method": {
+        "path": "CutMethod",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ClosedCornerBuilderCutMethodTypes",
+        "values": [
+          "ByTool",
+          "ByPath"
+        ]
+      },
+      "diameter": {
+        "path": "Diameter",
+        "getter": false,
+        "kind": "expression"
+      },
+      "gap": {
+        "path": "Gap",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length1": {
+        "path": "Length1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length2": {
+        "path": "Length2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "limit_edge1": {
+        "path": "LimitEdge1",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "limit_edge2": {
+        "path": "LimitEdge2",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "miter_corner": {
+        "path": "MiterCorner",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "offset": {
+        "path": "Offset",
+        "getter": false,
+        "kind": "expression"
+      },
+      "origin": {
+        "path": "Origin",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ClosedCornerBuilderOriginTypes",
+        "values": [
+          "BendCenter",
+          "CornerPoint"
+        ]
+      },
+      "overlap": {
+        "path": "Overlap",
+        "getter": false,
+        "kind": "expression"
+      },
+      "overlap_type": {
+        "path": "OverlapType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ClosedCornerBuilderOverlapTypeOptions",
+        "values": [
+          "NotSet",
+          "Side1",
+          "Side2"
+        ]
+      },
+      "punch_radius": {
+        "path": "PunchRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "rectangular_length": {
+        "path": "RectangularLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "rectangular_width": {
+        "path": "RectangularWidth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "treatment_type": {
+        "path": "TreatmentType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ClosedCornerBuilderTreatmentTypeOptions",
+        "values": [
+          "Open",
+          "Closed",
+          "CircularCutout",
+          "UCutout",
+          "VCutout",
+          "RectangularCutout"
+        ]
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ClosedCornerBuilderTypes",
+        "values": [
+          "CloseAndRelief",
+          "Relief"
+        ]
+      },
+      "v_angle1": {
+        "path": "VAngle1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "v_angle2": {
+        "path": "VAngle2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "face_pairs": {
+        "kind": "face_pairs"
+      }
+    },
+    "required": [
+      "face_pairs"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "face_pairs": [
+        [
+          "$input_1",
+          "$input_2"
+        ]
+      ],
+      "gap": 0.5,
+      "overlap_type": "NotSet",
+      "treatment_type": "CircularCutout",
+      "diameter": 6
+    },
+    "edit_status": "experimental"
+  },
+  "three_bend_corner": {
+    "builder": "ThreeBendCornerBuilder",
+    "factory": "CreateThreeBendCornerFeatureBuilder",
+    "fields": {
+      "blend_miter": {
+        "path": "BlendMiter",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "blend_miter_radius": {
+        "path": "BlendMiterRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "corner_gap": {
+        "path": "CornerGap",
+        "getter": false,
+        "kind": "expression"
+      },
+      "cut_method": {
+        "path": "CutMethod",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ThreeBendCornerBuilderCutMethodTypes",
+        "values": [
+          "ByTool",
+          "ByPath"
+        ]
+      },
+      "diameter": {
+        "path": "Diameter",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flange_clearance": {
+        "path": "FlangeClearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length1": {
+        "path": "Length1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length2": {
+        "path": "Length2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "miter_corner": {
+        "path": "MiterCorner",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "miter_root_radius": {
+        "path": "MiterRootRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "offset": {
+        "path": "Offset",
+        "getter": false,
+        "kind": "expression"
+      },
+      "origin_type": {
+        "path": "OriginType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ThreeBendCornerBuilderOriginTypes",
+        "values": [
+          "BendCenter",
+          "CornerPoint"
+        ]
+      },
+      "punch_radius": {
+        "path": "PunchRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "treatment_type": {
+        "path": "TreatmentType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ThreeBendCornerBuilderTreatmentTypeOptions",
+        "values": [
+          "Open",
+          "Closed",
+          "CircularCutout",
+          "UCutout",
+          "VCutout"
+        ]
+      },
+      "v_cutout_angle1": {
+        "path": "VCutoutAngle1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "v_cutout_angle2": {
+        "path": "VCutoutAngle2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "face_pairs": {
+        "kind": "face_pairs"
+      }
+    },
+    "required": [
+      "face_pairs"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "face_pairs": [
+        [
+          "$input_1",
+          "$input_2"
+        ]
+      ],
+      "corner_gap": 1,
+      "flange_clearance": 1,
+      "treatment_type": "Open",
+      "diameter": 4
+    },
+    "edit_status": "experimental"
+  },
+  "bridge_bend": {
+    "builder": "BridgeTransitionBuilder",
+    "factory": "CreateBridgeTransitionBuilder",
+    "fields": {
+      "alternate_solution": {
+        "path": "AlternateSolution",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "bend_options_of_flex_transition": {
+        "path": "BendOptionsOfFlexTransition",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "bend_options_of_sketched_transition": {
+        "path": "BendOptionsOfSketchedTransition",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "end_edge": {
+        "path": "EndEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false
+      },
+      "end_edge_lateral_offset": {
+        "path": "EndEdgeLateralOffset",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flex_bend_divide_parameter_type": {
+        "path": "FlexBendDivideParameterType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderFlexBendDivideParameterOptions",
+        "values": [
+          "BendsSegments",
+          "MaximumChordHeight",
+          "MaximumSegmentLength",
+          "MaximumSegmentAngle"
+        ]
+      },
+      "flex_bending_method_type": {
+        "path": "FlexBendingMethodType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderFlexBendingMethodOptions",
+        "values": [
+          "Formed",
+          "Bends"
+        ]
+      },
+      "flex_endpoint": {
+        "path": "FlexEndpoint",
+        "getter": false,
+        "kind": "point",
+        "assign": true
+      },
+      "flex_length": {
+        "path": "FlexLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flex_length_type": {
+        "path": "FlexLengthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderFlexLengthOptions",
+        "values": [
+          "ScaleFactor",
+          "Value"
+        ]
+      },
+      "flex_maximum_chord_height": {
+        "path": "FlexMaximumChordHeight",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flex_maximum_segment_angle": {
+        "path": "FlexMaximumSegmentAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flex_maximum_segment_length": {
+        "path": "FlexMaximumSegmentLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "flex_number_of_bend_segments": {
+        "path": "FlexNumberOfBendSegments",
+        "getter": false,
+        "kind": "integer"
+      },
+      "fold_bend_options": {
+        "path": "FoldBendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "fold_transition_type": {
+        "path": "FoldTransitionType",
+        "getter": false,
+        "kind": "integer"
+      },
+      "inset_type": {
+        "path": "InsetType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderInsetOptions",
+        "values": [
+          "MaterialInside",
+          "MaterialOutside"
+        ]
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length_tolerance": {
+        "path": "LengthTolerance",
+        "getter": false,
+        "kind": "number"
+      },
+      "multi_thickness_property": {
+        "path": "MultiThicknessProperty",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "multi_thickness_toggle": {
+            "path": "MultiThicknessToggle",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "zone_name": {
+            "path": "ZoneName",
+            "getter": false,
+            "kind": "string"
+          }
+        }
+      },
+      "plane": {
+        "path": "Plane",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "point": {
+        "path": "Point",
+        "getter": false,
+        "kind": "point",
+        "assign": true
+      },
+      "reference_geometry_plane": {
+        "path": "ReferenceGeometryPlane",
+        "getter": false,
+        "kind": "plane",
+        "assign": true
+      },
+      "scale_factor": {
+        "path": "ScaleFactor",
+        "getter": false,
+        "kind": "number"
+      },
+      "section": {
+        "path": "Section",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "smart_divide": {
+        "path": "SmartDivide",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "start_and_end_parameters_equal": {
+        "path": "StartAndEndParametersEqual",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "start_edge": {
+        "path": "StartEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false
+      },
+      "start_edge_lateral_offset": {
+        "path": "StartEdgeLateralOffset",
+        "getter": false,
+        "kind": "expression"
+      },
+      "trim_or_extend_to_bend": {
+        "path": "TrimOrExtendToBend",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderTypeOptions",
+        "values": [
+          "Zu",
+          "Fold",
+          "Flex",
+          "Sketched"
+        ]
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      },
+      "width_direction": {
+        "path": "WidthDirection",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderWidthDirectionOptions",
+        "values": [
+          "Left",
+          "Right"
+        ]
+      },
+      "width_type": {
+        "path": "WidthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BridgeTransitionBuilderWidthOptions",
+        "values": [
+          "Finite",
+          "Symmetric",
+          "FullStartEdge",
+          "FullEndEdge",
+          "FullBothEdges"
+        ]
+      },
+      "zu_end_edge_bend_options": {
+        "path": "ZuEndEdgeBendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "zu_start_edge_bend_options": {
+        "path": "ZuStartEdgeBendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      }
+    },
+    "required": [
+      "start_edge",
+      "end_edge"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "start_edge": "$input_1",
+      "end_edge": "$input_2",
+      "type": "Zu",
+      "width_type": "FullBothEdges",
+      "length": 20,
+      "width": 80
+    },
+    "edit_status": "experimental"
+  },
+  "bend_taper": {
+    "builder": "BendTaperBuilder",
+    "factory": "CreateBendTaperBuilder",
+    "fields": {
+      "bend_taper_angle1": {
+        "path": "BendTaperAngle1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_taper_angle2": {
+        "path": "BendTaperAngle2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_taper_input_method1": {
+        "path": "BendTaperInputMethod1",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderBendTaperInputMethod",
+        "values": [
+          "Angle",
+          "Distance",
+          "ToEnd"
+        ]
+      },
+      "bend_taper_input_method2": {
+        "path": "BendTaperInputMethod2",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderBendTaperInputMethod",
+        "values": [
+          "Angle",
+          "Distance",
+          "ToEnd"
+        ]
+      },
+      "bend_taper_select_bend_face": {
+        "path": "BendTaperSelectBendFace",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "bend_taper_type1": {
+        "path": "BendTaperType1",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderBendTaperType",
+        "values": [
+          "Linear",
+          "Tangent",
+          "Square"
+        ]
+      },
+      "bend_taper_type2": {
+        "path": "BendTaperType2",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderBendTaperType",
+        "values": [
+          "Linear",
+          "Tangent",
+          "Square"
+        ]
+      },
+      "end_radius1": {
+        "path": "EndRadius1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "end_radius2": {
+        "path": "EndRadius2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "infer_radius1": {
+        "path": "InferRadius1",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "infer_radius2": {
+        "path": "InferRadius2",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "start_radius1": {
+        "path": "StartRadius1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "start_radius2": {
+        "path": "StartRadius2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "start_type1": {
+        "path": "StartType1",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderStartType",
+        "values": [
+          "TaperFromBend",
+          "TaperFromWeb"
+        ]
+      },
+      "start_type2": {
+        "path": "StartType2",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderStartType",
+        "values": [
+          "TaperFromBend",
+          "TaperFromWeb"
+        ]
+      },
+      "stationary_entity": {
+        "path": "StationaryEntity",
+        "getter": false,
+        "kind": "face_or_edge",
+        "assign": true
+      },
+      "taper_distance1": {
+        "path": "TaperDistance1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "taper_distance2": {
+        "path": "TaperDistance2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "taper_sides": {
+        "path": "TaperSides",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderBendTaperSides",
+        "values": [
+          "Both",
+          "Side1",
+          "Side2",
+          "Symmetric"
+        ]
+      },
+      "web_taper_angle1": {
+        "path": "WebTaperAngle1",
+        "getter": false,
+        "kind": "expression"
+      },
+      "web_taper_angle2": {
+        "path": "WebTaperAngle2",
+        "getter": false,
+        "kind": "expression"
+      },
+      "web_taper_type1": {
+        "path": "WebTaperType1",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderWebTaperType",
+        "values": [
+          "NotSet",
+          "Face",
+          "FaceChain"
+        ]
+      },
+      "web_taper_type2": {
+        "path": "WebTaperType2",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BendTaperBuilderWebTaperType",
+        "values": [
+          "NotSet",
+          "Face",
+          "FaceChain"
+        ]
+      }
+    },
+    "required": [
+      "bend_taper_select_bend_face",
+      "stationary_entity"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_taper_select_bend_face": [
+        "$input_1"
+      ],
+      "stationary_entity": "$input_2",
+      "bend_taper_input_method1": "Distance",
+      "bend_taper_input_method2": "Distance",
+      "taper_distance1": 5,
+      "taper_distance2": 5,
+      "taper_sides": "Both"
+    },
+    "edit_status": "experimental"
+  },
+  "resize_bend_angle": {
+    "builder": "ResizeBendAngleBuilder",
+    "factory": "CreateResizeBendAngleBuilder",
+    "fields": {
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_face": {
+        "path": "BendFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "keep_radius_fixed": {
+        "path": "KeepRadiusFixed",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "reference_edge": {
+        "path": "ReferenceEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false
+      },
+      "reference_face": {
+        "path": "ReferenceFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      }
+    },
+    "required": [
+      "bend_face",
+      "angle",
+      "reference_face"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_face": "$input_1",
+      "angle": 110,
+      "reference_face": "$input_2"
+    },
+    "edit_status": "experimental"
+  },
+  "resize_bend_radius": {
+    "builder": "ResizeBendRadiusBuilder",
+    "factory": "CreateResizeBendRadiusFeatureBuilder",
+    "fields": {
+      "bend_faces": {
+        "path": "BendFaces",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "bend_radius": {
+        "path": "BendRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_relief_depth": {
+        "path": "BendReliefDepth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_relief_width": {
+        "path": "BendReliefWidth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "reference_entity": {
+        "path": "ReferenceEntity",
+        "getter": false,
+        "kind": "select_face_or_edge",
+        "assign": false
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ResizeBendRadiusBuilderTypes",
+        "values": [
+          "FixedFoldedLength",
+          "FixedUnfoldedLength"
+        ]
+      }
+    },
+    "required": [
+      "bend_faces",
+      "bend_radius",
+      "reference_entity"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_faces": [
+        "$input_1"
+      ],
+      "bend_radius": 3,
+      "reference_entity": "$input_2"
+    },
+    "edit_status": "experimental"
+  },
+  "resize_neutral_factor": {
+    "builder": "ResizeNeutralFactorBuilder",
+    "factory": "CreateResizeNeutralFactorBuilder",
+    "fields": {
+      "bend_faces": {
+        "path": "BendFaces",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "neutral_factor": {
+        "path": "NeutralFactor",
+        "getter": false,
+        "kind": "expression"
+      },
+      "use_global": {
+        "path": "UseGlobal",
+        "getter": false,
+        "kind": "boolean"
+      }
+    },
+    "required": [
+      "bend_faces",
+      "neutral_factor"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_faces": [
+        "$input_1"
+      ],
+      "neutral_factor": 0.4
+    },
+    "edit_status": "experimental"
+  },
+  "convert": {
+    "builder": "ConvertToSheetmetalBuilder",
+    "factory": "CreateConvertToSheetmetalFeatureBuilder",
+    "fields": {
+      "additional_faces_to_convert": {
+        "path": "AdditionalFacesToConvert",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "base_face": {
+        "path": "BaseFace",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      },
+      "bend_relief_depth": {
+        "path": "BendReliefDepth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_relief_type": {
+        "path": "BendReliefType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "ConvertToSheetmetalBuilderBendReliefTypeOptions",
+        "values": [
+          "NotSet",
+          "Square",
+          "Round"
+        ]
+      },
+      "bend_relief_width": {
+        "path": "BendReliefWidth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "is_uniform_thickness": {
+        "path": "IsUniformThickness",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "local_base_face": {
+        "path": "LocalBaseFace",
+        "getter": false,
+        "kind": "face",
+        "assign": true
+      },
+      "local_region_faces": {
+        "path": "LocalRegionFaces",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "maintain_zero_bend_radius": {
+        "path": "MaintainZeroBendRadius",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "rip_section": {
+        "path": "RipSection",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "rip_edges": {
+        "kind": "reference_list",
+        "objects": "edge",
+        "method": "SetRipEdges"
+      },
+      "corners": {
+        "kind": "object_list",
+        "container": null,
+        "sequence": "CornerList",
+        "creator": "CreateConvertInputListItem",
+        "fields": {
+          "corner_faces": {
+            "path": "CornerFaces",
+            "getter": false,
+            "kind": "collector",
+            "assign": false,
+            "objects": "face"
+          }
+        },
+        "required": [
+          "corner_faces"
+        ]
+      }
+    },
+    "required": [
+      "base_face"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "base_face": "$input_1",
+      "is_uniform_thickness": true
+    },
+    "edit_status": "experimental"
+  },
+  "from_solid": {
+    "builder": "SheetMetalFromSolidBuilder",
+    "factory": "CreateSheetMetalFromSolidBuilder",
+    "fields": {
+      "bend_edges": {
+        "path": "BendEdges",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "hide_original": {
+        "path": "HideOriginal",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "reverse_direction": {
+        "path": "ReverseDirection",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "thickness": {
+        "path": "Thickness",
+        "getter": false,
+        "kind": "expression"
+      },
+      "thickness_tolerance": {
+        "path": "ThicknessTolerance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "use_global_thickness": {
+        "path": "UseGlobalThickness",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "web_faces": {
+        "path": "WebFaces",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face"
+      },
+      "bend_properties": {
+        "kind": "object_list",
+        "container": null,
+        "sequence": "BendPropertiesList",
+        "creator": "CreateSheetMetalFromSolidBendProperties",
+        "fields": {
+          "bend_edges": {
+            "path": "BendEdges",
+            "getter": false,
+            "kind": "collector",
+            "assign": false,
+            "objects": "edge"
+          },
+          "bend_options": {
+            "path": "BendOptions",
+            "getter": false,
+            "kind": "object",
+            "fields": {
+              "bend_radius": {
+                "path": "BendRadius",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_depth": {
+                "path": "BendReliefDepth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "bend_relief_type": {
+                "path": "BendReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsBendReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "Square",
+                  "Round"
+                ]
+              },
+              "bend_relief_width": {
+                "path": "BendReliefWidth",
+                "getter": false,
+                "kind": "expression"
+              },
+              "corner_relief_type": {
+                "path": "CornerReliefType",
+                "getter": false,
+                "kind": "enum",
+                "enum_type": "BendOptionsCornerReliefTypeOptions",
+                "values": [
+                  "NotSet",
+                  "BendOnly",
+                  "BendAndFace",
+                  "BendAndFaceChain"
+                ]
+              },
+              "die_tool_id": {
+                "path": "DieToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "die_tool_id_name": {
+                "path": "DieToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "extend_bend_relief": {
+                "path": "ExtendBendRelief",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "include_relief_in_width": {
+                "path": "IncludeReliefInWidth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "neutral_factor": {
+                "path": "NeutralFactor",
+                "getter": false,
+                "kind": "expression"
+              },
+              "override_tool_set": {
+                "path": "OverrideToolSet",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "punch_tool_id": {
+                "path": "PunchToolId",
+                "getter": false,
+                "kind": "integer"
+              },
+              "punch_tool_id_name": {
+                "path": "PunchToolIdName",
+                "getter": false,
+                "kind": "string"
+              },
+              "use_global_bend_radius": {
+                "path": "UseGlobalBendRadius",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_neutral_factor": {
+                "path": "UseGlobalNeutralFactor",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_depth": {
+                "path": "UseGlobalReliefDepth",
+                "getter": false,
+                "kind": "boolean"
+              },
+              "use_global_relief_width": {
+                "path": "UseGlobalReliefWidth",
+                "getter": false,
+                "kind": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "bend_edges"
+        ]
+      }
+    },
+    "required": [
+      "web_faces",
+      "thickness"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "web_faces": [
+        "$input_1",
+        "$input_2"
+      ],
+      "bend_properties": [
+        {
+          "bend_edges": [
+            "$input_3"
+          ],
+          "bend_options": {
+            "bend_radius": 2,
+            "use_global_bend_radius": false
+          }
+        }
+      ],
+      "thickness": 2,
+      "use_global_thickness": false,
+      "hide_original": true
+    },
+    "edit_status": "experimental"
+  },
+  "flat_solid": {
+    "builder": "FlatSolidBuilder",
+    "factory": "CreateFlatSolidFeatureBuilder",
+    "fields": {
+      "added_geometry": {
+        "path": "AddedGeometry",
+        "getter": false,
+        "kind": "section",
+        "assign": false
+      },
+      "associative": {
+        "path": "Associative",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "auto_assign_component_layer": {
+        "path": "AutoAssignComponentLayer",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "auto_associate_objects": {
+        "path": "AutoAssociateObjects",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "fix_at_timestamp": {
+        "path": "FixAtTimestamp",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "flat_body_color": {
+        "path": "FlatBodyColor",
+        "getter": false,
+        "kind": "integer"
+      },
+      "flat_body_layer": {
+        "path": "FlatBodyLayer",
+        "getter": false,
+        "kind": "integer"
+      },
+      "inner_corner_treatment": {
+        "path": "InnerCornerTreatment",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "treatment_type": {
+            "path": "TreatmentType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "CornerTreatmentBuilderCornerTreatmentType",
+            "values": [
+              "NotSet",
+              "Chamfer",
+              "Radius"
+            ]
+          },
+          "use_global": {
+            "path": "UseGlobal",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "value": {
+            "path": "Value",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "layer_setting": {
+        "path": "LayerSetting",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "FlatSolidBuilderLayerSettingOption",
+        "values": [
+          "Default",
+          "Preference",
+          "Specify"
+        ]
+      },
+      "orientation": {
+        "path": "Orientation",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "FlatSolidBuilderOrientationType",
+        "values": [
+          "Default",
+          "Edge",
+          "Csys"
+        ]
+      },
+      "orientation_csys": {
+        "path": "OrientationCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "orientation_from_csys": {
+        "path": "OrientationFromCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "outer_corner_treatment": {
+        "path": "OuterCornerTreatment",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "treatment_type": {
+            "path": "TreatmentType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "CornerTreatmentBuilderCornerTreatmentType",
+            "values": [
+              "NotSet",
+              "Chamfer",
+              "Radius"
+            ]
+          },
+          "use_global": {
+            "path": "UseGlobal",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "value": {
+            "path": "Value",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "reference_vertex": {
+        "path": "ReferenceVertex",
+        "getter": false,
+        "kind": "point3d",
+        "assign": true
+      },
+      "stationary_face": {
+        "path": "StationaryFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "transform_components": {
+        "path": "TransformComponents",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "FlatSolidBuilderTransformComponentsOption",
+        "values": [
+          "NotSet",
+          "Body",
+          "Csys",
+          "BodyAndComponent"
+        ]
+      },
+      "transform_pin_andcc_p": {
+        "path": "TransformPinAndCCP",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "transform_restriction_areas": {
+        "path": "TransformRestrictionAreas",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "transform_to_absolute_csys": {
+        "path": "TransformToAbsoluteCsys",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "x_axis_edge": {
+        "path": "XAxisEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false
+      }
+    },
+    "required": [
+      "stationary_face",
+      "x_axis_edge"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "stationary_face": "$input_1",
+      "x_axis_edge": "$input_2",
+      "associative": true
+    },
+    "edit_status": "experimental"
+  },
+  "flat_pattern": {
+    "builder": "FlatPatternBuilder",
+    "factory": "CreateFlatPatternBuilder",
+    "fields": {
+      "added_geometry": {
+        "path": "AddedGeometry",
+        "getter": false,
+        "kind": "section",
+        "assign": false
+      },
+      "associative": {
+        "path": "Associative",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "bend_direction_down_text": {
+        "path": "BendDirectionDownText",
+        "getter": false,
+        "kind": "string"
+      },
+      "bend_direction_up_text": {
+        "path": "BendDirectionUpText",
+        "getter": false,
+        "kind": "string"
+      },
+      "fix_at_timestamp": {
+        "path": "FixAtTimestamp",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "hole_treatment": {
+        "path": "HoleTreatment",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "diameter": {
+            "path": "Diameter",
+            "getter": false,
+            "kind": "expression"
+          },
+          "treatment": {
+            "path": "Treatment",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "HoleTreatmentBuilderTreatmentType",
+            "values": [
+              "NotSet",
+              "Centermark",
+              "HoleAndCentermark"
+            ]
+          },
+          "use_global": {
+            "path": "UseGlobal",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "inner_corner_treatment": {
+        "path": "InnerCornerTreatment",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "treatment_type": {
+            "path": "TreatmentType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "CornerTreatmentBuilderCornerTreatmentType",
+            "values": [
+              "NotSet",
+              "Chamfer",
+              "Radius"
+            ]
+          },
+          "use_global": {
+            "path": "UseGlobal",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "value": {
+            "path": "Value",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "keep_flat_solid_external": {
+        "path": "KeepFlatSolidExternal",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "orientation": {
+        "path": "Orientation",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "FlatSolidBuilderOrientationType",
+        "values": [
+          "Default",
+          "Edge",
+          "Csys"
+        ]
+      },
+      "orientation_csys": {
+        "path": "OrientationCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "orientation_from_csys": {
+        "path": "OrientationFromCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "outer_corner_treatment": {
+        "path": "OuterCornerTreatment",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "treatment_type": {
+            "path": "TreatmentType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "CornerTreatmentBuilderCornerTreatmentType",
+            "values": [
+              "NotSet",
+              "Chamfer",
+              "Radius"
+            ]
+          },
+          "use_global": {
+            "path": "UseGlobal",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "value": {
+            "path": "Value",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "reference_vertex": {
+        "path": "ReferenceVertex",
+        "getter": false,
+        "kind": "point3d",
+        "assign": true
+      },
+      "show_interior_feature_curves": {
+        "path": "ShowInteriorFeatureCurves",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "transform_to_absolute_csys": {
+        "path": "TransformToAbsoluteCsys",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "upward_face": {
+        "path": "UpwardFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "x_axis_edge": {
+        "path": "XAxisEdge",
+        "getter": false,
+        "kind": "select_edge",
+        "assign": false,
+        "description": "Select a valid orientation edge on the selected upward web face. After forming, reacquire its current boundary/tangent edge rather than reusing the original tab outer-edge location."
+      }
+    },
+    "required": [
+      "upward_face",
+      "x_axis_edge"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native developed bracket, DXF/GEO export; flat pattern drawing and visually inspected PDF",
+    "edit_status": "experimental"
+  },
+  "advanced_flange": {
+    "builder": "AdvancedFlangeBuilder",
+    "factory": "CreateAdvancedFlangeBuilder",
+    "fields": {
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "edges": {
+        "path": "Edges",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "end_adjustment": {
+        "path": "EndAdjustment",
+        "getter": false,
+        "kind": "expression"
+      },
+      "faces": {
+        "path": "Faces",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "face",
+        "description": "Reference-face collector for ToReference. NX requires faces belonging to the same body as the selected edges. Tested web and formed-wall face combinations were rejected; do not infer an arbitrary face is geometrically valid."
+      },
+      "flat_pattern_compensation_at_end": {
+        "path": "FlatPatternCompensationAtEnd",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "flat_pattern_compensation_at_start": {
+        "path": "FlatPatternCompensationAtStart",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "infer_length": {
+        "path": "InferLength",
+        "getter": false,
+        "kind": "boolean",
+        "description": "Native inference toggle. ByValue=true committed on the numeric-length fixture but produced identical geometry; this is not proof of inferred-length behavior. Reference-driven inference remains unverified."
+      },
+      "inset": {
+        "path": "Inset",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "AdvancedFlangeBuilderInsets",
+        "values": [
+          "MaterialInside",
+          "MaterialOutside",
+          "BendOutside",
+          "MaterialInsideOML"
+        ]
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length_reference": {
+        "path": "LengthReference",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "AdvancedFlangeBuilderLengthReferences",
+        "values": [
+          "Inside",
+          "Outside",
+          "Web",
+          "Din6935"
+        ]
+      },
+      "plane1": {
+        "path": "Plane1",
+        "getter": false,
+        "kind": "plane",
+        "assign": true,
+        "description": "First end-limit plane in work-part coordinates. Native 100x80x2 tab fixture: origin [10,0,0], normal [1,0,0] trims 10 mm from the flange end."
+      },
+      "plane2": {
+        "path": "Plane2",
+        "getter": false,
+        "kind": "plane",
+        "assign": true,
+        "description": "Second end-limit plane. Native paired fixture uses plane1 at x=10 and plane2 at x=90, both normal +X, to trim both ends. Plane2-only mode is not established."
+      },
+      "reverse_direction": {
+        "path": "ReverseDirection",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "reverse_trim_side": {
+        "path": "ReverseTrimSide",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "start_adjustment": {
+        "path": "StartAdjustment",
+        "getter": false,
+        "kind": "expression"
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "AdvancedFlangeBuilderTypes",
+        "values": [
+          "ByValue",
+          "ToReference"
+        ],
+        "description": "ByValue and ToReference are native builder modes. Only the example with native default mode and numeric length is verified; ToReference geometry combinations remain unverified."
+      }
+    },
+    "required": [
+      "edges"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "edges": [
+        "$input_1"
+      ],
+      "length": 20,
+      "angle": 90
+    },
+    "edit_status": "experimental",
+    "example_evidence": {
+      "source": "tests/fixtures/sheet-metal-examples.json#/operations/advanced_flange",
+      "validation": "native_fixture",
+      "scope": "suite2 AdvancedFlange creation with length=20, angle=90 on a boundary edge of a 100 x 80 x 2 mm XY tab; optional reference-driven modes were not exercised."
+    },
+    "prerequisites": [
+      "Numeric-length ByValue mode and one/two end-limit planes were exercised natively on NX v2606.",
+      "ToReference without faces fails preflight. Same-body web and formed-wall face selections were rejected by NX with rollback; a successful reference-driven recipe is not established.",
+      "infer_length=true in ByValue mode did not change the numeric-length fixture."
+    ]
+  },
+  "variational_flange": {
+    "builder": "VariationalFlangeBuilder",
+    "factory": "CreateVariationalFlangeBuilder",
+    "fields": {
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "angle_law_type": {
+        "path": "AngleLawType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "VariationalFlangeBuilderLawTypes",
+        "values": [
+          "Constant",
+          "Linear"
+        ]
+      },
+      "edges": {
+        "path": "Edges",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "end_angle": {
+        "path": "EndAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "end_length": {
+        "path": "EndLength",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "length_law_type": {
+        "path": "LengthLawType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "VariationalFlangeBuilderLawTypes",
+        "values": [
+          "Constant",
+          "Linear"
+        ]
+      },
+      "length_reference": {
+        "path": "LengthReference",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "VariationalFlangeBuilderLengthReferences",
+        "values": [
+          "Inside",
+          "Outside",
+          "Web",
+          "Tangent"
+        ]
+      },
+      "neutral_factor": {
+        "path": "NeutralFactor",
+        "getter": false,
+        "kind": "expression"
+      },
+      "radius": {
+        "path": "Radius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "reverse_direction": {
+        "path": "ReverseDirection",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "start_angle": {
+        "path": "StartAngle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "start_length": {
+        "path": "StartLength",
+        "getter": false,
+        "kind": "expression"
+      }
+    },
+    "required": [
+      "edges"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "edges": [
+        "$input_1"
+      ],
+      "length_law_type": "Linear",
+      "start_length": 10,
+      "end_length": 20,
+      "angle": 90,
+      "radius": 2,
+      "neutral_factor": 0.33
+    },
+    "edit_status": "experimental"
+  },
+  "joggle": {
+    "builder": "JoggleBuilder",
+    "factory": "CreateJoggleBuilder",
+    "fields": {
+      "adjustment": {
+        "path": "Adjustment",
+        "getter": false,
+        "kind": "expression"
+      },
+      "end_plane": {
+        "path": "EndPlane",
+        "getter": false,
+        "kind": "plane",
+        "assign": true
+      },
+      "flat_pattern_compensation": {
+        "path": "FlatPatternCompensation",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "limit_type": {
+        "path": "LimitType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "JoggleBuilderLimitTypes",
+        "values": [
+          "Single",
+          "Twin"
+        ]
+      },
+      "side1_options": {
+        "path": "Side1Options",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "clearance": {
+            "path": "Clearance",
+            "getter": false,
+            "kind": "expression"
+          },
+          "offset_radius": {
+            "path": "OffsetRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "runout": {
+            "path": "Runout",
+            "getter": false,
+            "kind": "expression"
+          },
+          "stationary_radius": {
+            "path": "StationaryRadius",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "side2_options": {
+        "path": "Side2Options",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "clearance": {
+            "path": "Clearance",
+            "getter": false,
+            "kind": "expression"
+          },
+          "offset_radius": {
+            "path": "OffsetRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "runout": {
+            "path": "Runout",
+            "getter": false,
+            "kind": "expression"
+          },
+          "stationary_radius": {
+            "path": "StationaryRadius",
+            "getter": false,
+            "kind": "expression"
+          }
+        }
+      },
+      "start_plane": {
+        "path": "StartPlane",
+        "getter": false,
+        "kind": "plane",
+        "assign": true
+      },
+      "symmetric_sides": {
+        "path": "SymmetricSides",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "use_material_table": {
+        "path": "UseMaterialTable",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "inputs": {
+        "kind": "joggle_list",
+        "required": [
+          "faces",
+          "depth"
+        ],
+        "fields": {
+          "depth": {
+            "path": "Depth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "faces": {
+            "path": "Faces",
+            "getter": false,
+            "kind": "collector",
+            "assign": false,
+            "objects": "face"
+          },
+          "reverse_direction": {
+            "path": "ReverseDirection",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      }
+    },
+    "required": [
+      "inputs"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "inputs": [
+        {
+          "faces": [
+            "$input_1"
+          ],
+          "depth": 5
+        }
+      ],
+      "start_plane": {
+        "origin": [
+          50,
+          0,
+          0
+        ],
+        "normal": [
+          1,
+          0,
+          0
+        ]
+      },
+      "limit_type": "Single",
+      "side1_options": {
+        "runout": 10,
+        "stationary_radius": 2,
+        "offset_radius": 2,
+        "clearance": 0.2
+      }
+    },
+    "edit_status": "experimental"
+  },
+  "lightening_cutout": {
+    "builder": "LighteningCutoutBuilder",
+    "factory": "CreateLighteningCutoutBuilder",
+    "fields": {
+      "angle": {
+        "path": "Angle",
+        "getter": false,
+        "kind": "expression"
+      },
+      "bend_options": {
+        "path": "BendOptions",
+        "getter": false,
+        "kind": "object",
+        "fields": {
+          "bend_radius": {
+            "path": "BendRadius",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_depth": {
+            "path": "BendReliefDepth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "bend_relief_type": {
+            "path": "BendReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsBendReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "Square",
+              "Round"
+            ]
+          },
+          "bend_relief_width": {
+            "path": "BendReliefWidth",
+            "getter": false,
+            "kind": "expression"
+          },
+          "corner_relief_type": {
+            "path": "CornerReliefType",
+            "getter": false,
+            "kind": "enum",
+            "enum_type": "BendOptionsCornerReliefTypeOptions",
+            "values": [
+              "NotSet",
+              "BendOnly",
+              "BendAndFace",
+              "BendAndFaceChain"
+            ]
+          },
+          "die_tool_id": {
+            "path": "DieToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "die_tool_id_name": {
+            "path": "DieToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "extend_bend_relief": {
+            "path": "ExtendBendRelief",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "include_relief_in_width": {
+            "path": "IncludeReliefInWidth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "neutral_factor": {
+            "path": "NeutralFactor",
+            "getter": false,
+            "kind": "expression"
+          },
+          "override_tool_set": {
+            "path": "OverrideToolSet",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "punch_tool_id": {
+            "path": "PunchToolId",
+            "getter": false,
+            "kind": "integer"
+          },
+          "punch_tool_id_name": {
+            "path": "PunchToolIdName",
+            "getter": false,
+            "kind": "string"
+          },
+          "use_global_bend_radius": {
+            "path": "UseGlobalBendRadius",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_neutral_factor": {
+            "path": "UseGlobalNeutralFactor",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_depth": {
+            "path": "UseGlobalReliefDepth",
+            "getter": false,
+            "kind": "boolean"
+          },
+          "use_global_relief_width": {
+            "path": "UseGlobalReliefWidth",
+            "getter": false,
+            "kind": "boolean"
+          }
+        }
+      },
+      "check_clearance": {
+        "path": "CheckClearance",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "clearance": {
+        "path": "Clearance",
+        "getter": false,
+        "kind": "expression"
+      },
+      "diameter": {
+        "path": "Diameter",
+        "getter": false,
+        "kind": "expression"
+      },
+      "die_radius": {
+        "path": "DieRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "hole_center": {
+        "path": "HoleCenter",
+        "getter": false,
+        "kind": "point_section",
+        "assign": false
+      },
+      "length": {
+        "path": "Length",
+        "getter": false,
+        "kind": "expression"
+      },
+      "reverse_bend_direction": {
+        "path": "ReverseBendDirection",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "section_corner_radius": {
+        "path": "SectionCornerRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "standard_name": {
+        "path": "StandardName",
+        "getter": false,
+        "kind": "string"
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "LighteningCutoutBuilderCutoutType",
+        "values": [
+          "Hole",
+          "UserDefined"
+        ]
+      },
+      "user_defined_section": {
+        "path": "UserDefinedSection",
+        "getter": false,
+        "kind": "section",
+        "assign": false
+      }
+    },
+    "required": [],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "type": "Hole",
+      "hole_center": [
+        [
+          50,
+          40,
+          0
+        ]
+      ],
+      "diameter": 12,
+      "length": 4,
+      "angle": 45,
+      "die_radius": 2
+    },
+    "edit_status": "experimental"
+  },
+  "solid_punch": {
+    "builder": "SolidPunchBuilder",
+    "factory": "CreateSolidPunchBuilder",
+    "fields": {
+      "auto_centroid": {
+        "path": "AutoCentroid",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "constant_thickness": {
+        "path": "ConstantThickness",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "die_radius": {
+        "path": "DieRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "from_csys": {
+        "path": "FromCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "hide_tool": {
+        "path": "HideTool",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "include_rounding": {
+        "path": "IncludeRounding",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "infer_thickness": {
+        "path": "InferThickness",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "pierce_faces": {
+        "path": "PierceFaces",
+        "getter": false,
+        "kind": "select_faces",
+        "assign": false
+      },
+      "punch_radius": {
+        "path": "PunchRadius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "target_face": {
+        "path": "TargetFace",
+        "getter": false,
+        "kind": "select_face",
+        "assign": false
+      },
+      "thickness": {
+        "path": "Thickness",
+        "getter": false,
+        "kind": "expression"
+      },
+      "to_csys": {
+        "path": "ToCsys",
+        "getter": false,
+        "kind": "csys",
+        "assign": true
+      },
+      "tool_body": {
+        "path": "ToolBody",
+        "getter": false,
+        "kind": "select_body",
+        "assign": false
+      },
+      "type": {
+        "path": "Type",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "SolidPunchBuilderTypes",
+        "values": [
+          "PunchType",
+          "DieType"
+        ]
+      }
+    },
+    "required": [
+      "target_face",
+      "tool_body"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "target_face": "$input_1",
+      "tool_body": "$input_2",
+      "type": "PunchType",
+      "from_csys": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "x_axis": [
+          1,
+          0,
+          0
+        ],
+        "y_axis": [
+          0,
+          1,
+          0
+        ]
+      },
+      "to_csys": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "x_axis": [
+          1,
+          0,
+          0
+        ],
+        "y_axis": [
+          0,
+          1,
+          0
+        ]
+      },
+      "constant_thickness": true,
+      "infer_thickness": true,
+      "include_rounding": false,
+      "auto_centroid": false
+    },
+    "edit_status": "experimental"
+  },
+  "bulge_relief": {
+    "builder": "BulgeReliefBuilder",
+    "factory": "CreateBulgeReliefBuilder",
+    "fields": {
+      "bend_edges": {
+        "path": "BendEdges",
+        "getter": false,
+        "kind": "collector",
+        "assign": false,
+        "objects": "edge"
+      },
+      "depth": {
+        "path": "Depth",
+        "getter": false,
+        "kind": "expression"
+      },
+      "radius": {
+        "path": "Radius",
+        "getter": false,
+        "kind": "expression"
+      },
+      "relief_type": {
+        "path": "ReliefType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BulgeReliefBuilderReliefTypes",
+        "values": [
+          "Circular",
+          "UShaped",
+          "VShaped"
+        ]
+      },
+      "width": {
+        "path": "Width",
+        "getter": false,
+        "kind": "expression"
+      },
+      "width_type": {
+        "path": "WidthType",
+        "getter": false,
+        "kind": "enum",
+        "enum_type": "BulgeReliefBuilderWidthTypes",
+        "values": [
+          "Value",
+          "FullWidth"
+        ]
+      }
+    },
+    "required": [
+      "bend_edges"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native creation fixture with clean feature diagnostics and UF body consistency; does not certify every option or edit combination",
+    "example_parameters": {
+      "bend_edges": [
+        "$input_1"
+      ],
+      "depth": 3,
+      "width": 6,
+      "radius": 2,
+      "relief_type": "Circular"
+    },
+    "edit_status": "experimental"
+  },
+  "unbend": {
+    "builder": "UnbendBuilder",
+    "factory": "CreateUnbendFeatureBuilder",
+    "fields": {
+      "added_geometry": {
+        "path": "AddedGeometry",
+        "getter": false,
+        "kind": "section",
+        "assign": true
+      },
+      "extract_gusset_curves": {
+        "path": "ExtractGussetCurves",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "face_collector": {
+        "path": "FaceCollector",
+        "getter": false,
+        "kind": "collector",
+        "assign": true,
+        "objects": "face",
+        "description": "Bend face IDs from nx_sheet_metal_info.items[].bends[].face.id on the owning body; reacquire after unbend or another topology change."
+      },
+      "hide_original_curves": {
+        "path": "HideOriginalCurves",
+        "getter": false,
+        "kind": "boolean"
+      },
+      "reference_entity": {
+        "path": "ReferenceEntity",
+        "getter": false,
+        "kind": "face_or_edge",
+        "assign": true,
+        "description": "Stationary face or edge on the same work-part sheet-metal body. Native fixture uses the original largest planar web face, not the flattened bend strip; edge-based stationary references are unverified."
+      }
+    },
+    "required": [
+      "face_collector",
+      "reference_entity"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Native face collector initialized; actual bend flattened; body consistency and subsequent rebend verified",
+    "edit_status": "experimental",
+    "example_parameters": {
+      "face_collector": [
+        "$input_1"
+      ],
+      "reference_entity": "$input_2"
+    },
+    "example_evidence": {
+      "source": "tests/fixtures/sheet-metal-examples.json#/operations/unbend",
+      "validation": "native_fixture",
+      "scope": "suite4/unbend_rebend: one bend on a 100 x 80 x 2 mm tab with a 20 mm, 90-degree flange; original planar web is stationary. Edge-based stationary references were not exercised."
+    },
+    "prerequisites": [
+      "Start from a native sheet-metal body with a bend; the fixture uses a 100 x 80 x 2 mm tab and a 20 mm, 90-degree flange.",
+      "$input_1 is the bend face from nx_sheet_metal_info.items[].bends[].face.id; $input_2 is the original planar web face selected from that same body.",
+      "Reacquire bend and stationary references after topology changes. For rebend, select the current bend face after unbend and keep the original web stationary; do not use the newly flattened strip as the stationary face."
+    ]
+  },
+  "rebend": {
+    "builder": "RebendBuilder",
+    "factory": "CreateRebendFeatureBuilder",
+    "fields": {
+      "face_collector": {
+        "path": "FaceCollector",
+        "getter": false,
+        "kind": "collector",
+        "assign": true,
+        "objects": "face",
+        "description": "Bend face IDs from nx_sheet_metal_info.items[].bends[].face.id on the owning body; reacquire after unbend or another topology change."
+      },
+      "reference_entity": {
+        "path": "ReferenceEntity",
+        "getter": false,
+        "kind": "face_or_edge",
+        "assign": true,
+        "description": "Stationary face or edge on the same work-part sheet-metal body. Native fixture uses the original largest planar web face, not the flattened bend strip; edge-based stationary references are unverified."
+      }
+    },
+    "required": [
+      "face_collector",
+      "reference_entity"
+    ],
+    "native_status": "tested",
+    "tested_on": "v2606",
+    "validation_scope": "Flattened bend reformed about the largest stationary web face; native geometry healthy",
+    "edit_status": "experimental",
+    "example_parameters": {
+      "face_collector": [
+        "$input_1"
+      ],
+      "reference_entity": "$input_2"
+    },
+    "example_evidence": {
+      "source": "tests/fixtures/sheet-metal-examples.json#/operations/rebend",
+      "validation": "native_fixture",
+      "scope": "suite4/unbend_rebend: one bend on a 100 x 80 x 2 mm tab with a 20 mm, 90-degree flange; original planar web is stationary. Edge-based stationary references were not exercised."
+    },
+    "prerequisites": [
+      "Start from a native sheet-metal body with a bend; the fixture uses a 100 x 80 x 2 mm tab and a 20 mm, 90-degree flange.",
+      "$input_1 is the bend face from nx_sheet_metal_info.items[].bends[].face.id; $input_2 is the original planar web face selected from that same body.",
+      "Reacquire bend and stationary references after topology changes. For rebend, select the current bend face after unbend and keep the original web stationary; do not use the newly flattened strip as the stationary face."
+    ]
+  }
+}

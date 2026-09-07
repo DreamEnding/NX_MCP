@@ -204,8 +204,15 @@ class FakeLoadStatus:
 
 
 class FakeStepCreator:
+    def __init__(self):
+        self.ObjectTypes = SimpleNamespace()
+
     def Commit(self):
-        Path(self.OutputFile).write_text("STEP", encoding="utf-8")
+        assert self.ExportFrom == "existing-part"
+        assert self.ObjectTypes.Solids is True
+        Path(self.OutputFile).write_text(
+            "ISO-10303-21;\nMANIFOLD_SOLID_BREP();\nEND-ISO-10303-21;", encoding="utf-8"
+        )
 
     def Destroy(self):
         pass
@@ -275,8 +282,9 @@ class FakeSession:
 
 
 FAKE_NXOPEN = SimpleNamespace(
+    StepCreator=SimpleNamespace(ExportFromOption=SimpleNamespace(ExistingPart="existing-part")),
     BasePart=SimpleNamespace(
-        SaveComponents=SimpleNamespace(TrueValue=True),
+        SaveComponents=SimpleNamespace(TrueValue=True, FalseValue=False),
         CloseAfterSave=SimpleNamespace(FalseValue=False),
         CloseWholeTree=SimpleNamespace(TrueValue="whole-tree"),
         CloseModified=SimpleNamespace(CloseModified="close"),
@@ -367,7 +375,7 @@ def test_open_save_export_and_close_part_lifecycle(tmp_path: Path):
     assert opened["part"]["name"] == "existing"
     assert saved["message"] == "Saved part: existing"
     assert exported["path"].endswith("part.stp")
-    assert Path(exported["path"]).read_text(encoding="utf-8") == "STEP"
+    assert "MANIFOLD_SOLID_BREP" in Path(exported["path"]).read_text(encoding="utf-8")
     assert closed["message"] == "Closed part: existing"
     assert session.Parts.last_closed.close_args[:2] == ("whole-tree", "close")
     assert executor.execute("nx_status", {})["active_part"] is None

@@ -87,6 +87,7 @@ def _make_mock_nxopen():
     mock_sketches = [_make_named("Circle1"), _make_named("Path1")]
     mock_work_part.Sketches = MagicMock()
     mock_work_part.Sketches.ToArray = MagicMock(return_value=mock_sketches)
+    mock_work_part.Sketches.__iter__.side_effect = lambda: iter(mock_sketches)
 
     # --- Curves ---
     mock_work_part.Curves = MagicMock()

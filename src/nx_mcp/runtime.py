@@ -5,7 +5,31 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Literal
 
-ObjectKind = Literal["part", "sketch", "curve", "feature", "body"]
+ObjectKind = Literal[
+    "reference_set",
+    "datum",
+    "part",
+    "sketch",
+    "curve",
+    "point",
+    "feature",
+    "body",
+    "component",
+    "face",
+    "edge",
+    "section",
+    "constraint",
+    "expression",
+    "component_pattern",
+    "assembly_constraint",
+    "drawing_sheet",
+    "drawing_view",
+    "dimension",
+    "annotation",
+    "traceline",
+    "explosion",
+    "modeling_view",
+]
 
 
 @dataclass(frozen=True)

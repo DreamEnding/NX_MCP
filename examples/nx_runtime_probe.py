@@ -26,6 +26,12 @@ def main() -> None:
     except Exception as error:  # Report the runtime issue instead of mutating NX.
         bridge_import_error = f"{type(error).__name__}: {error}"
 
+    experimental_import_error = None
+    try:
+        from nx_mcp.experimental import execute_legacy  # noqa: F401
+    except Exception as error:
+        experimental_import_error = f"{type(error).__name__}: {error}"
+
     session = NXOpen.Session.GetSession()
     result = {
         "python_version": sys.version,
@@ -34,6 +40,7 @@ def main() -> None:
         "pydantic_available": importlib.util.find_spec("pydantic") is not None,
         "mcp_available": importlib.util.find_spec("mcp") is not None,
         "bridge_import_error": bridge_import_error,
+        "experimental_import_error": experimental_import_error,
     }
     destination = Path(output)
     destination.parent.mkdir(parents=True, exist_ok=True)

@@ -10,7 +10,7 @@ import os
 import secrets
 import socketserver
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Lock, Thread
@@ -69,6 +69,8 @@ class BridgeDescriptor:
 
 
 def default_descriptor_path() -> Path:
+    if configured := os.environ.get("NX_MCP_BRIDGE_DESCRIPTOR"):
+        return Path(configured)
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
         return Path(local_app_data) / "nx-mcp" / "bridge.json"
@@ -88,7 +90,8 @@ class _BridgeTCPServer(socketserver.TCPServer):
     executor: Any
     token: str
 
-    def __init__(self, executor: Any, token: str) -> None:
+    def __init__(self, executor: Any, token: str, result_directory: Path | None = None) -> None:
+        self.result_directory = result_directory
         self.executor = executor
         self.token = token
         super().__init__(("127.0.0.1", 0), _BridgeRequestHandler)
@@ -118,6 +121,9 @@ class _BridgeRequestHandler(socketserver.StreamRequestHandler):
             if not isinstance(method, str) or not isinstance(params, dict):
                 raise NXToolError("NX_INVALID_REQUEST", "Bridge method and params are invalid")
             result = self.server.executor(method, params)
+            from nx_mcp.result_transport import bound_result
+
+            result = bound_result(result, self.server.result_directory)
             response = {
                 "jsonrpc": "2.0",
                 "protocol_version": BRIDGE_PROTOCOL_VERSION,
@@ -144,11 +150,26 @@ class _BridgeRequestHandler(socketserver.StreamRequestHandler):
         self.wfile.write(json.dumps(response, ensure_ascii=False).encode("utf-8") + b"\n")
 
 
+class _ThreadedBridgeTCPServer(socketserver.ThreadingMixIn, _BridgeTCPServer):
+    daemon_threads = True
+
+
 class BridgeServer:
     """A serialized loopback JSON-RPC server for an NX-side executor."""
 
-    def __init__(self, executor: Any, *, token: str) -> None:
-        self._server = _BridgeTCPServer(executor, token)
+    def __init__(
+        self,
+        executor: Any,
+        *,
+        token: str,
+        result_directory: Path | None = None,
+        concurrent_requests: bool = False,
+    ) -> None:
+        # Interactive callers serialize NXOpen through MainThreadDispatcher.
+        # Concurrent socket handling permits cached health reads during work;
+        # the batch/default executor retains its original serialized transport.
+        server_type = _ThreadedBridgeTCPServer if concurrent_requests else _BridgeTCPServer
+        self._server = server_type(executor, token, result_directory)
         self._thread: Thread | None = None
 
     @property
@@ -177,6 +198,8 @@ class _PendingBridgeCall:
     complete: Event = field(default_factory=Event)
     result: dict[str, Any] | None = None
     error: Exception | None = None
+    started: bool = False
+    cancelled: bool = False
 
 
 class MainThreadDispatcher:
@@ -206,10 +229,15 @@ class MainThreadDispatcher:
             self._calls.put(pending)
 
         if not pending.complete.wait(self._timeout):
+            with self._lock:
+                if not pending.started:
+                    pending.cancelled = True
+                outcome = "unknown" if pending.started else "not_started"
             raise NXToolError(
                 "NX_MAIN_THREAD_UNAVAILABLE",
-                "NX did not process the bridge request before the timeout.",
-                retryable=True,
+                "NX did not complete the bridge request before the timeout. Query the operation receipt before retrying a started mutation.",
+                retryable=not pending.started,
+                details={"mutation_outcome": outcome},
             )
         if pending.error is not None:
             raise pending.error
@@ -254,18 +282,24 @@ class MainThreadDispatcher:
 
     def _execute(self, pending: _PendingBridgeCall) -> None:
         with self._lock:
-            if self._stopped:
+            if self._stopped or pending.cancelled:
                 pending.error = NXToolError(
                     "NX_BRIDGE_UNAVAILABLE",
-                    "NX bridge is stopping.",
+                    "Bridge stopped or queued request expired before execution.",
                     retryable=True,
+                    details={"mutation_outcome": "not_started"},
                 )
-            else:
-                try:
-                    pending.result = self._executor(pending.method, pending.params)
-                except Exception as error:
-                    pending.error = error
-        pending.complete.set()
+                pending.complete.set()
+                return
+            pending.started = True
+        # The queue consumer is serialized; release the queue lock so a waiting
+        # caller can distinguish queued expiry from a running, unknown outcome.
+        try:
+            pending.result = self._executor(pending.method, pending.params)
+        except Exception as error:
+            pending.error = error
+        finally:
+            pending.complete.set()
 
 
 class BridgeClient:
@@ -301,6 +335,12 @@ class BridgeClient:
             writer.write(json.dumps(request, ensure_ascii=False).encode("utf-8") + b"\n")
             await writer.drain()
             raw = await asyncio.wait_for(reader.readline(), timeout=self.timeout)
+        except ValueError as error:
+            raise NXToolError(
+                "NX_RESPONSE_TOO_LARGE",
+                "Bridge response exceeded framing limit; inspect operation status before retry",
+                details={"operation_id": params.get("operation_id"), "mutation_outcome": "unknown"},
+            ) from error
         except (OSError, asyncio.TimeoutError) as error:
             raise NXToolError(
                 "NX_BRIDGE_UNAVAILABLE",
@@ -385,6 +425,7 @@ class ObjectRegistry:
     """Maps opaque, session-scoped IDs to live NXOpen objects."""
 
     def __init__(self) -> None:
+        self.session_id: str | None = None
         self._objects: dict[str, _ObjectEntry] = {}
         self._stale_ids: set[str] = set()
         self._identities: dict[tuple[str, ObjectKind, str], str] = {}
@@ -394,9 +435,12 @@ class ObjectRegistry:
         identity = str(native_identity if native_identity is not None else id(value))
         identity_key = (part_id, kind, identity)
         if object_id := self._identities.get(identity_key):
-            return self._objects[object_id].reference
+            entry = self._objects[object_id]
+            if entry.reference.name != name:
+                entry.reference = replace(entry.reference, name=name)
+            return entry.reference
         reference = ObjectRef(
-            id=f"obj_{uuid4().hex}",
+            id=f"obj_{getattr(self, 'session_id', '') + '_' if getattr(self, 'session_id', None) else ''}{uuid4().hex}",
             kind=kind,
             name=name,
             part_id=part_id,
@@ -414,7 +458,15 @@ class ObjectRegistry:
     ) -> Any:
         entry = self._objects.get(object_id)
         if entry is None:
-            code = "NX_OBJECT_STALE" if object_id in self._stale_ids else "NX_OBJECT_NOT_FOUND"
+            foreign_session = bool(
+                self.session_id is not None
+                and not object_id.startswith("obj_" + self.session_id + "_")
+            )
+            code = (
+                "NX_OBJECT_STALE"
+                if object_id in self._stale_ids or foreign_session
+                else "NX_OBJECT_NOT_FOUND"
+            )
             raise NXToolError(code, f"Object reference is not valid: {object_id}")
         if expected_kind is not None and entry.reference.kind != expected_kind:
             raise NXToolError(

@@ -22,3 +22,14 @@ def test_nx_bridge_import_succeeds_without_site_packages() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_hardened_runtime_import_has_no_sidecar_dependencies():
+    source_root = Path(__file__).parents[1] / "src"
+    result = subprocess.run(
+        [sys.executable, "-S", "-c", "import nx_mcp.hardened"],
+        capture_output=True,
+        text=True,
+        env=os.environ | {"PYTHONPATH": str(source_root)},
+    )
+    assert result.returncode == 0, result.stderr

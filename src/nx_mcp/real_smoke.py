@@ -61,9 +61,20 @@ async def run_iteration(
         )
         after = await _call(client, "nx_list_bodies", {})
         await _call(client, "nx_fit_view", {})
-        exported = await _call(client, "nx_export_step", {"path": step_path})
+        # STEP export saves the part and invalidates native undo marks. Exercise
+        # undo before that save boundary, then recreate the solid for export.
         await _call(client, "nx_undo", {})
         after_undo = await _call(client, "nx_list_bodies", {})
+        sketches = await _call(client, "nx_list_sketches", {})
+        sketch_id = next(
+            item["id"] for item in sketches["objects"] if item["name"] == sketch["object"]["name"]
+        )
+        extruded = await _call(
+            client,
+            "nx_extrude",
+            {"sketch_id": sketch_id, "distance": 12.5, "reverse": False},
+        )
+        exported = await _call(client, "nx_export_step", {"path": step_path})
         await _call(client, "nx_save_part", {})
         await _call(client, "nx_close_part", {"save": False})
     except Exception:

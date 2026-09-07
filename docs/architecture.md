@@ -30,17 +30,62 @@ operation; saving clears these native marks. Builders are destroyed from
 `finally` blocks. File operations are independently confined to the configured
 workspace on both sides of the process boundary.
 
-## Certification boundary
+## Profiles and graphical hosting
 
-`server.py` explicitly registers the 16 certified tools. Legacy modules under
-`tools/` are imported only when `NX_MCP_ENABLE_EXPERIMENTAL=1` is set on both
-processes; Journal tools require `NX_MCP_ENABLE_JOURNAL=1` as well. A tool may
-join the default surface only after strict boundary tests and a real-NX
-contract test pass for the target build.
+The default exposes the original 16 tools. `NX_MCP_ENABLE_EXPERIMENTAL=1`
+enables the extended integration; it does not classify every tool as untested.
+The capability manifest separates native, sidecar-only and experimental evidence.
+Journal execution retains a separate opt-in. The optional agent profile discovers
+and invokes registered tools; it does not bypass their validation or permissions.
 
-The listener thread only queues requests. `pump_bridge()` executes them on the
-NX journal's main thread, which is required by NXOpen. The bundled runner pumps
-while waiting for `NX_MCP_BRIDGE_STOP_FILE`, so it is a batch feasibility path,
-not an interactive GUI integration. If a target build cannot provide a
-non-blocking GUI scheduler, the NX-side executor moves to a minimal C# plugin;
-the JSON-RPC and MCP contracts remain unchanged.
+The batch runner calls `pump_bridge()` on the journal main thread. The graphical
+runner retains a Win32 timer callback and returns from the journal. The callback
+executes one queued operation at a time on the NX UI thread. Pause releases input
+for manual editing and invalidates references/checkpoints; resume requires fresh
+inspection. Agent mode intentionally disables the NX main window even while idle; use
+`nx_ui_control(mode="manual")` or **Pause / manual** to navigate or edit. This
+handoff invalidates object references and checkpoints. The panel distinguishes
+reserved idle, active operation and manual mode, paints before native execution,
+and reports the last operation duration. Its window is owned by NX so the Pause
+control stays above NX without being globally topmost. It does not continuously repaint an
+unchanged label.
+
+`nx_ui_control(mode="status")` reads a timestamped snapshot without joining the
+NX execution queue. `snapshot_age_seconds` is the age of the last main-thread
+sample; `operation_elapsed_seconds` grows while an operation is running. These
+are observations, not a hang detector or proof of kernel responsiveness. No
+worker thread calls NXOpen. A native call holding the Python GIL can still delay
+this endpoint. `.nx-mcp/ui-state.json` records the last sample before/after work
+and approximately once a second while idle for external diagnosis.
+
+A long native call can block the UI and the panel. Pause and Stop take effect
+after it returns; they cannot abort a native builder. Cooperative batch cancellation
+is checked between child operations, not during a native builder call.
+
+## Integration references and recovery
+
+References carry session/generation identity, owner-part context and separate
+journal/display names. Occurrences also carry assembly context. Closed or rolled
+back geometry cannot be resolved through stale IDs. Geometric selectors are
+re-evaluated rules, not permanent topological identities.
+
+Mutation receipts under `.nx-mcp/operations` store request fingerprints and explicit
+outcomes. Retry with the same ID/arguments returns a committed receipt; conflicts
+are rejected. An interrupted process can leave an unknown outcome requiring
+reconciliation. Native checkpoints do not survive restart or expired NX undo marks.
+Read-only inspection does not intentionally discard recovery history.
+
+Result snapshots under `.nx-mcp/agent-results` are separate from mutation receipts.
+Retention/cleanup affects only those snapshots. A snapshot does not keep referenced
+NX objects alive. See [agent contracts](agent-surface.md).
+
+## Files and transport
+
+Both process boundaries confine paths to the workspace. Relative and absolute
+NX-host paths are accepted inside it; traversal, external resolved links and
+internal state access are rejected. Filesystem publication has separate rollback
+semantics from model undo. Assembly packages include referenced dependencies.
+
+The NX bridge is authenticated loopback IPC. The optional HTTP sidecar is a
+separate transport and needs its own access controls; it is not authenticated
+by the private bridge token. Stdio is the default transport.

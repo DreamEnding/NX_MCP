@@ -1,0 +1,30 @@
+{
+  "nx_version": "v2606",
+  "stage": "pre-release native executor validation; public MCP acceptance is separate",
+  "historical_source": "https://github.com/xuio/NX_MCP/blob/a8ef3a270fbf4083b54ea48b06b64257dd910357/docs/sheet-metal-native-validation.json",
+  "operations": {
+    "advanced_flange": {
+      "native_type": "AdvancedFlange",
+      "source_fixture": "suite2",
+      "model_health": true,
+      "saved_and_closed": true,
+      "parameters": {
+        "edges": [
+          "$input_1"
+        ],
+        "length": 20,
+        "angle": 90
+      }
+    },
+    "unbend": {
+      "native_type": "Unbend",
+      "source_fixture": "suite4/unbend_rebend",
+      "scope": "Native face collector initialized; actual bend flattened; body consistency and subsequent rebend verified"
+    },
+    "rebend": {
+      "native_type": "Rebend",
+      "source_fixture": "suite4/unbend_rebend",
+      "scope": "Flattened bend reformed about the largest stationary web face; native geometry healthy"
+    }
+  }
+}

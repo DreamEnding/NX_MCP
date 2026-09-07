@@ -28,7 +28,7 @@ Use `nx_create_sketch` or `nx_list_sketches` to obtain `sketch_id`. Object IDs
 become stale after the part closes or is reopened and must then be queried
 again.
 
-The 34 remaining 0.1 tools are hidden until `NX_MCP_ENABLE_EXPERIMENTAL=1` is
-set on both processes. They remain unsupported until certified on real NX.
+The extended integration is hidden until `NX_MCP_ENABLE_EXPERIMENTAL=1` is
+set on both processes. The compatibility flag name does not describe per-tool verification. Consult the capability matrix for native-tested, sidecar-tested and experimental scopes.
 Journal execution additionally requires `NX_MCP_ENABLE_JOURNAL=1`, and journal
 paths are restricted to the workspace `journals/` directory.

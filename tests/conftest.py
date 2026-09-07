@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from tests.fakes import rig  # noqa: F401
+
 
 def create_mock_nxopen_modules() -> dict[str, types.ModuleType]:
     """Create a full mock NXOpen module tree for testing."""

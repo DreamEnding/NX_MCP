@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nx-mcp"
-version = "0.2.0.dev0"
+version = "0.2.0.dev23"
 description = "MCP server for Siemens NX (UG) CAD operations"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+benchmark = ["tiktoken>=0.12,<1"]
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21",
@@ -83,3 +84,6 @@ exclude = [
 # NXOpen is injected at runtime inside NX; treat it as untyped rather than erroring.
 module = "NXOpen.*"
 ignore_missing_imports = true
+
+[tool.setuptools.package-data]
+nx_mcp = ["capability_manifest.json", "sheet_metal_catalog.json"]

@@ -50,7 +50,7 @@ def create_collector_from_names(
         collection = getattr(work_part, collection_name, None)
         if collection is not None:
             with contextlib.suppress(Exception):
-                all_objects.extend(collection.ToArray())
+                all_objects.extend(list(collection))
 
     resolved: list[Any] = []
     for name in names:

@@ -97,7 +97,7 @@ async def nx_open_part(path: str) -> ToolResult | ToolError:
 # ---------------------------------------------------------------------------
 @mcp_tool(
     name="nx_save_part",
-    description="Save the currently active (work) part.",
+    description="Save only the active work part; component files are not saved. Activate and save each component explicitly. The integration profile reports saved paths, disk fingerprints, native save errors and preservation checks for unrelated loaded parts.",
     params={},
 )
 async def nx_save_part() -> ToolResult | ToolError:
@@ -108,7 +108,7 @@ async def nx_save_part() -> ToolResult | ToolError:
         part = NXSession.get_instance().require_work_part()
 
         part.Save(
-            NXOpen.BasePart.SaveComponents.TrueValue, NXOpen.BasePart.CloseAfterSave.FalseValue
+            NXOpen.BasePart.SaveComponents.FalseValue, NXOpen.BasePart.CloseAfterSave.FalseValue
         )
 
         return ToolResult.success(
