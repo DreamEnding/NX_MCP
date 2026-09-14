@@ -2,7 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.client import Client
 
 from nx_mcp.bridge import BridgeClient, BridgeServer
 from nx_mcp.contracts import NXToolError
@@ -189,6 +189,8 @@ class FakePart(FakeObject):
         self._parts = None
 
     def Save(self, save_components, close_after_save):
+        assert save_components is False
+        Path(self.FullPath).write_text("FAKE PRT", encoding="utf-8")
         self.saved = True
 
     def Close(self, whole_tree, close_modified, responses):
@@ -265,6 +267,9 @@ class FakeSession:
         self.marks[mark] = name
         return mark
 
+    def DeleteUndoMark(self, mark, name):
+        del self.marks[mark]
+
     def UndoToMark(self, mark, name):
         self.undo_to_marks.append(mark)
         self.rollback_count += 1
@@ -276,9 +281,9 @@ class FakeSession:
 
 FAKE_NXOPEN = SimpleNamespace(
     BasePart=SimpleNamespace(
-        SaveComponents=SimpleNamespace(TrueValue=True),
+        SaveComponents=SimpleNamespace(TrueValue=True, FalseValue=False),
         CloseAfterSave=SimpleNamespace(FalseValue=False),
-        CloseWholeTree=SimpleNamespace(TrueValue="whole-tree"),
+        CloseWholeTree=SimpleNamespace(TrueValue="whole-tree", FalseValue="part-only"),
         CloseModified=SimpleNamespace(CloseModified="close"),
     ),
     Part=SimpleNamespace(Units=SimpleNamespace(Millimeters="mm", Inches="inch")),
@@ -369,7 +374,7 @@ def test_open_save_export_and_close_part_lifecycle(tmp_path: Path):
     assert exported["path"].endswith("part.stp")
     assert Path(exported["path"]).read_text(encoding="utf-8") == "STEP"
     assert closed["message"] == "Closed part: existing"
-    assert session.Parts.last_closed.close_args[:2] == ("whole-tree", "close")
+    assert session.Parts.last_closed.close_args[:2] == ("part-only", "close")
     assert executor.execute("nx_status", {})["active_part"] is None
 
 
@@ -448,6 +453,7 @@ def test_undo_and_fit_view_are_exposed_by_the_executor(tmp_path: Path):
 def test_save_clears_mcp_undo_marks(tmp_path: Path):
     executor = NXOpenExecutor(FakeSession(), FAKE_NXOPEN, "NX test", Workspace(tmp_path))
 
+    executor.session.Parts.Work.FullPath = str(tmp_path / "part.prt")
     executor.execute("nx_create_sketch", {"plane": "XY"})
     executor.execute("nx_save_part", {})
 
@@ -457,7 +463,7 @@ def test_save_clears_mcp_undo_marks(tmp_path: Path):
     assert error.value.code == "NX_UNDO_UNAVAILABLE"
 
 
-def test_failed_model_mutation_rolls_back_its_undo_mark(tmp_path: Path):
+def test_invalid_model_mutation_does_not_create_an_undo_mark(tmp_path: Path):
     session = FakeSession()
     executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
     sketch = executor.execute("nx_create_sketch", {"plane": "XY", "name": "PROFILE"})
@@ -472,12 +478,17 @@ def test_failed_model_mutation_rolls_back_its_undo_mark(tmp_path: Path):
             },
         )
 
-    assert session.rollback_count == 1
+    assert session.rollback_count == 0
+    assert session.next_mark == 2
 
 
 @pytest.mark.asyncio
-async def test_mcp_sidecar_bridge_and_nx_executor_complete_core_workflow(tmp_path: Path):
-    executor = NXOpenExecutor(FakeSession(), FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+@pytest.mark.parametrize("mode", ["auto", "legacy"])
+async def test_mcp_sidecar_bridge_and_nx_executor_complete_core_workflow(tmp_path: Path, mode):
+    session = FakeSession()
+    session.Parts.Work = None
+    session.Parts.Display = None
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
     bridge_server = BridgeServer(executor.execute, token="workflow-token")
     bridge_server.start()
     mcp = create_server(
@@ -485,7 +496,7 @@ async def test_mcp_sidecar_bridge_and_nx_executor_complete_core_workflow(tmp_pat
         Workspace(tmp_path),
     )
     try:
-        async with create_connected_server_and_client_session(mcp) as client:
+        async with Client(mcp, mode=mode) as client:
             result = await run_iteration(client, tmp_path, 1, prefix="rerun")
     finally:
         bridge_server.stop()

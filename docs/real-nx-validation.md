@@ -1,6 +1,6 @@
 # Real NX validation gate
 
-## Latest validated run
+## Historical full workflow validation
 
 - Date: 2026-08-21
 - NX: v2506 (`ugraf.exe` 2506.4021; `run_journal.exe` 2506.4000)
@@ -12,6 +12,26 @@
 
 This validates the Python bridge for the recorded batch environment. It does
 not validate non-blocking interactive NX GUI responsiveness.
+
+## Current hardening validation (2026-09-14)
+
+The local runtime probe passed on NX v2506 / embedded Python 3.12.9 with
+`bridge_import_error: null`; neither `mcp` nor `pydantic` was available inside
+NX. This confirms the standard-library-only import boundary, not CAD behavior.
+The execution environment rejected the command to launch the full acceptance
+bridge. The changed save/close/undo paths, 20-iteration workflow, negative
+cases, and process restart test therefore still require real-NX acceptance.
+The historical run above does **not** certify these changes. Keep the opt-in
+gates and version `0.2.0.dev0` until that acceptance passes.
+
+## SDK v2 sidecar upgrade
+
+The sidecar has migrated to official `mcp>=2.2,<3` and `pydantic>=2.12,<3`.
+Use the upgraded sidecar interpreter for both the smoke runner and the MCP
+server. The historical SDK 1.27.0 acceptance and the runtime-only probe above
+do not certify the upgraded end-to-end workflow. The internal bridge remains
+protocol v1 and does not depend on the SDK. Repeat this gate before release;
+see `migration-mcp-sdk-2.md` for setup and protocol compatibility.
 
 ## Record before testing
 
@@ -48,7 +68,10 @@ python -m nx_mcp.real_smoke --workspace D:\NX_MCP_WORKSPACE --iterations 20 --ru
 
 Every iteration must connect, create a metric part, create and finish an XY
 rectangle sketch, extrude a new body, query the result, fit the view, export
-STEP, undo the extrude, verify the original body count, save, and close. A
+STEP, verify its nonempty output, undo the extrude, verify the original body
+count, save, close, verify the nonempty part file, reopen, check the saved body
+count, and close again. The runner refuses an existing work part, preflights all
+output paths, and only attempts failure cleanup on its own current part. A
 prefix must be unique for each rerun because NX will not overwrite a part.
 
 ## Pass criteria
@@ -76,6 +99,17 @@ environment variable containing the absolute path to `run_journal.exe`.
 
 The workflow creates a disposable workspace, runs the embedded-runtime probe,
 starts the Python bridge, then runs `pytest -m real_nx`. It requests the bridge
-to stop even when acceptance fails. Once the runner is reliable, make this
+to stop even when acceptance fails. After that bridge stops, a separate
+`tests/test_real_nx_restart.py` test owns two successive NX journal processes
+and verifies that one descriptor client reconnects without being recreated.
+Do not run this test while another bridge or NX session is active. It requires
+`NX_RUN_JOURNAL`, `NX_MCP_WORKSPACE`, and the existing opt-in flags. Ordinary
+acceptance also checks authentication, path rejection, no work part, invalid
+geometry, wrong-kind IDs, and stale IDs. No failed operation is retried.
+
+Artifacts are explicitly limited to the runtime probe and acceptance/restart
+JUnit XML reports. Never upload `bridge.json`, tokens, raw protocol traffic,
+or the entire workspace. Keep generated CAD files local to the disposable
+workspace. Once the runner is reliable, make this
 workflow a required release/branch gate in the repository settings; the normal
 hosted CI deliberately excludes `real_nx` because it cannot provide Siemens NX.

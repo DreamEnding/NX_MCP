@@ -8,12 +8,14 @@ import hmac
 import json
 import os
 import secrets
+import socket
 import socketserver
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from queue import Empty, Queue
-from threading import Event, Lock, Thread
+from threading import Event, Lock, Thread, get_ident
+from time import monotonic
 from typing import Any
 from uuid import uuid4
 
@@ -54,7 +56,22 @@ class BridgeDescriptor:
         if not isinstance(payload, dict):
             raise ValueError("Bridge descriptor must be a JSON object")
         try:
-            return cls(**payload)
+            descriptor = cls(**payload)
+            if (
+                descriptor.host != "127.0.0.1"
+                or type(descriptor.port) is not int
+                or not 1 <= descriptor.port <= 65535
+                or type(descriptor.pid) is not int
+                or descriptor.pid < 1
+                or type(descriptor.protocol_version) is not int
+                or not isinstance(descriptor.token, str)
+                or not descriptor.token
+                or not descriptor.token.isascii()
+                or not isinstance(descriptor.nx_version, str)
+                or not descriptor.nx_version
+            ):
+                raise ValueError("Bridge descriptor fields are invalid")
+            return descriptor
         except TypeError as error:
             raise ValueError("Bridge descriptor is invalid") from error
 
@@ -78,77 +95,159 @@ def default_descriptor_path() -> Path:
     return Path.home() / ".local" / "state" / "nx-mcp" / "bridge.json"
 
 
-def _error_payload(error: NXToolError) -> dict[str, Any]:
-    return error.as_dict()
+def _reject_constant(value: str) -> None:
+    raise ValueError("Non-finite JSON numbers are not allowed")
+
+
+def _decode_message(raw: bytes) -> dict[str, Any]:
+    try:
+        payload = json.loads(raw, parse_constant=_reject_constant)
+    except (UnicodeDecodeError, ValueError, RecursionError) as error:
+        raise NXToolError("NX_PROTOCOL_ERROR", "Invalid bridge JSON") from error
+    if not isinstance(payload, dict):
+        raise NXToolError("NX_PROTOCOL_ERROR", "Bridge message must be an object")
+    return payload
 
 
 class _BridgeTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
 
-    executor: Any
-    token: str
-
-    def __init__(self, executor: Any, token: str) -> None:
+    def __init__(self, executor: Any, token: str, read_timeout: float) -> None:
         self.executor = executor
         self.token = token
+        self.read_timeout = read_timeout
+        self.connection_lock = Lock()
+        self.connection: socket.socket | None = None
+        self.stopping = False
         super().__init__(("127.0.0.1", 0), _BridgeRequestHandler)
 
 
-class _BridgeRequestHandler(socketserver.StreamRequestHandler):
+class _BridgeRequestHandler(socketserver.BaseRequestHandler):
     server: _BridgeTCPServer
 
     def handle(self) -> None:
-        raw = self.rfile.readline(_MAX_MESSAGE_BYTES + 1)
-        request_id: str | None = None
+        with self.server.connection_lock:
+            if self.server.stopping:
+                return
+            self.server.connection = self.request
         try:
-            if len(raw) > _MAX_MESSAGE_BYTES:
-                raise NXToolError("NX_REQUEST_TOO_LARGE", "Bridge request is too large")
-            request = json.loads(raw)
-            request_id = request.get("id")
+            self._respond()
+        finally:
+            with self.server.connection_lock:
+                self.server.connection = None
+
+    def _respond(self) -> None:
+        request_id: str | int | None = None
+        started = False
+        response: dict[str, Any] = {
+            "jsonrpc": "2.0",
+            "protocol_version": BRIDGE_PROTOCOL_VERSION,
+            "id": None,
+        }
+        try:
+            deadline = monotonic() + self.server.read_timeout
+            raw = bytearray()
+            while b"\n" not in raw:
+                remaining = deadline - monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("Bridge request receive deadline expired")
+                with self.server.connection_lock:
+                    if self.server.stopping:
+                        return
+                # Windows socket shutdown does not reliably interrupt a timed receive.
+                self.request.settimeout(min(remaining, 0.1))
+                try:
+                    chunk = self.request.recv(min(65536, _MAX_MESSAGE_BYTES + 1 - len(raw)))
+                except TimeoutError:
+                    continue
+                if not chunk:
+                    raise NXToolError("NX_PROTOCOL_ERROR", "Incomplete bridge request")
+                raw.extend(chunk)
+                if len(raw) > _MAX_MESSAGE_BYTES:
+                    raise NXToolError("NX_REQUEST_TOO_LARGE", "Bridge request is too large")
+            request = _decode_message(bytes(raw))
+            candidate = request.get("id")
+            if type(candidate) not in (str, int):
+                raise NXToolError("NX_INVALID_REQUEST", "Bridge request ID is invalid")
+            request_id = candidate
+            response["id"] = request_id
             if request.get("jsonrpc") != "2.0":
                 raise NXToolError("NX_PROTOCOL_ERROR", "Expected JSON-RPC 2.0")
-            if request.get("protocol_version") != BRIDGE_PROTOCOL_VERSION:
+            version = request.get("protocol_version")
+            if type(version) is not int or version != BRIDGE_PROTOCOL_VERSION:
                 raise NXToolError(
                     "NX_PROTOCOL_VERSION_MISMATCH", "Bridge protocol version does not match"
                 )
-            if not hmac.compare_digest(str(request.get("token", "")), self.server.token):
+            token = request.get("token")
+            if (
+                not isinstance(token, str)
+                or not token.isascii()
+                or not hmac.compare_digest(token, self.server.token)
+            ):
                 raise NXToolError("NX_AUTH_FAILED", "Bridge authentication failed")
-            method = request.get("method")
-            params = request.get("params", {})
-            if not isinstance(method, str) or not isinstance(params, dict):
+            method, params = request.get("method"), request.get("params", {})
+            if not isinstance(method, str) or not method or not isinstance(params, dict):
                 raise NXToolError("NX_INVALID_REQUEST", "Bridge method and params are invalid")
+            started = True
             result = self.server.executor(method, params)
-            response = {
-                "jsonrpc": "2.0",
-                "protocol_version": BRIDGE_PROTOCOL_VERSION,
-                "id": request_id,
-                "ok": True,
-                "result": result,
-            }
+            if not isinstance(result, dict):
+                raise NXToolError("NX_PROTOCOL_ERROR", "Bridge result must be an object")
+            response.update(ok=True, result=result)
         except NXToolError as error:
-            response = {
-                "jsonrpc": "2.0",
-                "protocol_version": BRIDGE_PROTOCOL_VERSION,
-                "id": request_id,
-                "ok": False,
-                "error": _error_payload(error),
-            }
-        except Exception as error:
-            response = {
-                "jsonrpc": "2.0",
-                "protocol_version": BRIDGE_PROTOCOL_VERSION,
-                "id": request_id,
-                "ok": False,
-                "error": NXToolError("NX_OPERATION_FAILED", str(error)).as_dict(),
-            }
-        self.wfile.write(json.dumps(response, ensure_ascii=False).encode("utf-8") + b"\n")
+            if not started:
+                error.details["execution_state"] = "not_started"
+            response.update(ok=False, error=error.as_dict())
+        except (OSError, ValueError) as error:
+            response.update(
+                ok=False,
+                error=NXToolError(
+                    "NX_PROTOCOL_ERROR",
+                    str(error),
+                    details={"execution_state": "unknown" if started else "not_started"},
+                ).as_dict(),
+            )
+        except Exception:
+            response.update(
+                ok=False,
+                error=NXToolError(
+                    "NX_OPERATION_FAILED",
+                    "Bridge execution failed",
+                    details={"execution_state": "unknown"},
+                ).as_dict(),
+            )
+        try:
+            encoded = (
+                json.dumps(response, ensure_ascii=False, allow_nan=False).encode("utf-8") + b"\n"
+            )
+            if len(encoded) > _MAX_MESSAGE_BYTES:
+                raise ValueError("Bridge response is too large")
+        except (TypeError, ValueError, RecursionError):
+            encoded = (
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "protocol_version": BRIDGE_PROTOCOL_VERSION,
+                        "id": request_id,
+                        "ok": False,
+                        "error": NXToolError(
+                            "NX_PROTOCOL_ERROR",
+                            "Bridge response cannot be encoded within the size limit",
+                            details={"execution_state": "unknown" if started else "not_started"},
+                        ).as_dict(),
+                    }
+                ).encode()
+                + b"\n"
+            )
+        with contextlib.suppress(OSError):
+            self.request.settimeout(self.server.read_timeout)
+            self.request.sendall(encoded)
 
 
 class BridgeServer:
     """A serialized loopback JSON-RPC server for an NX-side executor."""
 
-    def __init__(self, executor: Any, *, token: str) -> None:
-        self._server = _BridgeTCPServer(executor, token)
+    def __init__(self, executor: Any, *, token: str, read_timeout: float = 5.0) -> None:
+        self._server = _BridgeTCPServer(executor, token, read_timeout)
         self._thread: Thread | None = None
 
     @property
@@ -158,22 +257,32 @@ class BridgeServer:
     def start(self) -> None:
         if self._thread is not None:
             return
-        self._thread = Thread(target=self._server.serve_forever, name="nx-mcp-bridge", daemon=True)
+        self._thread = Thread(
+            target=lambda: self._server.serve_forever(poll_interval=0.1),
+            name="nx-mcp-bridge",
+            daemon=True,
+        )
         self._thread.start()
 
     def stop(self) -> None:
-        if self._thread is None:
-            return
-        self._server.shutdown()
+        with self._server.connection_lock:
+            self._server.stopping = True
+            if self._server.connection is not None:
+                with contextlib.suppress(OSError):
+                    self._server.connection.shutdown(socket.SHUT_RDWR)
+        if self._thread is not None:
+            self._server.shutdown()
+            self._thread.join(timeout=5)
+            self._thread = None
         self._server.server_close()
-        self._thread.join(timeout=5)
-        self._thread = None
 
 
 @dataclass
 class _PendingBridgeCall:
     method: str
     params: dict[str, Any]
+    deadline: float
+    state: str = "queued"
     complete: Event = field(default_factory=Event)
     result: dict[str, Any] | None = None
     error: Exception | None = None
@@ -193,24 +302,40 @@ class MainThreadDispatcher:
         self._calls: Queue[_PendingBridgeCall] = Queue()
         self._lock = Lock()
         self._stopped = False
+        self._owner = get_ident()
+
+    @staticmethod
+    def _unavailable() -> NXToolError:
+        return NXToolError(
+            "NX_BRIDGE_UNAVAILABLE",
+            "NX bridge is stopping.",
+            retryable=True,
+            details={"execution_state": "not_started"},
+        )
+
+    @staticmethod
+    def _timeout_error(started: bool) -> NXToolError:
+        return NXToolError(
+            "NX_MAIN_THREAD_UNAVAILABLE",
+            "NX did not complete the request before the timeout.",
+            retryable=not started,
+            details={"execution_state": "unknown" if started else "not_started"},
+        )
 
     def call(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        pending = _PendingBridgeCall(method, params)
+        pending = _PendingBridgeCall(method, params, monotonic() + self._timeout)
         with self._lock:
             if self._stopped:
-                raise NXToolError(
-                    "NX_BRIDGE_UNAVAILABLE",
-                    "NX bridge is stopping.",
-                    retryable=True,
-                )
+                raise self._unavailable()
             self._calls.put(pending)
-
-        if not pending.complete.wait(self._timeout):
-            raise NXToolError(
-                "NX_MAIN_THREAD_UNAVAILABLE",
-                "NX did not process the bridge request before the timeout.",
-                retryable=True,
-            )
+        if not pending.complete.wait(max(0.0, pending.deadline - monotonic())):
+            with self._lock:
+                if pending.state == "queued":
+                    pending.state = "cancelled"
+                    pending.error = self._timeout_error(False)
+                    pending.complete.set()
+                elif pending.state == "running":
+                    raise self._timeout_error(True)
         if pending.error is not None:
             raise pending.error
         if pending.result is None:
@@ -218,24 +343,22 @@ class MainThreadDispatcher:
         return pending.result
 
     def drain(self, timeout: float = 0.0, *, limit: int = 1) -> int:
-        """Execute up to ``limit`` pending calls on the calling thread."""
+        """Execute up to ``limit`` queued calls on the creating thread."""
+        if get_ident() != self._owner:
+            raise NXToolError(
+                "NX_MAIN_THREAD_UNAVAILABLE", "NX bridge must be pumped on its creating thread."
+            )
         if limit < 1:
             raise ValueError("limit must be at least 1")
-        try:
-            pending = self._calls.get(timeout=timeout)
-        except Empty:
-            return 0
-
         processed = 0
-        while True:
+        while processed < limit:
+            try:
+                pending = self._calls.get(timeout=timeout if processed == 0 else 0)
+            except Empty:
+                break
             self._execute(pending)
             processed += 1
-            if processed == limit:
-                return processed
-            try:
-                pending = self._calls.get_nowait()
-            except Empty:
-                return processed
+        return processed
 
     def stop(self) -> None:
         with self._lock:
@@ -245,27 +368,30 @@ class MainThreadDispatcher:
                     pending = self._calls.get_nowait()
                 except Empty:
                     return
-                pending.error = NXToolError(
-                    "NX_BRIDGE_UNAVAILABLE",
-                    "NX bridge is stopping.",
-                    retryable=True,
-                )
+                pending.state = "cancelled"
+                pending.error = self._unavailable()
                 pending.complete.set()
 
     def _execute(self, pending: _PendingBridgeCall) -> None:
         with self._lock:
-            if self._stopped:
-                pending.error = NXToolError(
-                    "NX_BRIDGE_UNAVAILABLE",
-                    "NX bridge is stopping.",
-                    retryable=True,
-                )
-            else:
-                try:
-                    pending.result = self._executor(pending.method, pending.params)
-                except Exception as error:
-                    pending.error = error
-        pending.complete.set()
+            if pending.state == "cancelled":
+                return
+            if self._stopped or monotonic() >= pending.deadline:
+                pending.state = "cancelled"
+                pending.error = self._unavailable() if self._stopped else self._timeout_error(False)
+                pending.complete.set()
+                return
+            pending.state = "running"
+        result = None
+        error = None
+        try:
+            result = self._executor(pending.method, pending.params)
+        except Exception as caught:
+            error = caught
+        with self._lock:
+            pending.result, pending.error = result, error
+            pending.state = "done"
+            pending.complete.set()
 
 
 class BridgeClient:
@@ -279,67 +405,126 @@ class BridgeClient:
 
     async def call(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         request_id = uuid4().hex
-        request = {
-            "jsonrpc": "2.0",
-            "protocol_version": BRIDGE_PROTOCOL_VERSION,
-            "id": request_id,
-            "token": self.token,
-            "method": method,
-            "params": params,
-        }
-        writer: asyncio.StreamWriter | None = None
         try:
-            reader, writer = await asyncio.wait_for(
+            encoded = (
+                json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "protocol_version": BRIDGE_PROTOCOL_VERSION,
+                        "id": request_id,
+                        "token": self.token,
+                        "method": method,
+                        "params": params,
+                    },
+                    ensure_ascii=False,
+                    allow_nan=False,
+                ).encode("utf-8")
+                + b"\n"
+            )
+        except (TypeError, ValueError, RecursionError) as error:
+            raise NXToolError(
+                "NX_INVALID_ARGUMENT",
+                "Bridge arguments must be finite JSON values",
+                details={"execution_state": "not_started"},
+            ) from error
+        if len(encoded) > _MAX_MESSAGE_BYTES:
+            raise NXToolError(
+                "NX_REQUEST_TOO_LARGE",
+                "Bridge request is too large",
+                details={"execution_state": "not_started"},
+            )
+        writer: asyncio.StreamWriter | None = None
+        sent = False
+        deadline = monotonic() + self.timeout
+        try:
+            reader, connected_writer = await asyncio.wait_for(
                 asyncio.open_connection(
                     self.host,
                     self.port,
                     limit=_MAX_MESSAGE_BYTES + 1,
                 ),
-                timeout=self.timeout,
+                timeout=max(0.0, deadline - monotonic()),
             )
-            assert writer is not None
-            writer.write(json.dumps(request, ensure_ascii=False).encode("utf-8") + b"\n")
-            await writer.drain()
-            raw = await asyncio.wait_for(reader.readline(), timeout=self.timeout)
+            writer = connected_writer
+            sent = True
+            connected_writer.write(encoded)
+            await asyncio.wait_for(
+                connected_writer.drain(), timeout=max(0.0, deadline - monotonic())
+            )
+            raw = await asyncio.wait_for(
+                reader.readline(), timeout=max(0.0, deadline - monotonic())
+            )
         except (OSError, asyncio.TimeoutError) as error:
             raise NXToolError(
                 "NX_BRIDGE_UNAVAILABLE",
-                f"NX bridge is unavailable: {error}",
-                retryable=True,
+                "NX bridge connection failed or timed out.",
+                retryable=not sent,
+                details={"execution_state": "unknown" if sent else "not_started"},
+            ) from error
+        except ValueError as error:
+            raise NXToolError(
+                "NX_PROTOCOL_ERROR",
+                "NX bridge returned an oversized response",
+                details={"execution_state": "unknown"},
             ) from error
         finally:
             if writer is not None:
                 writer.close()
-                with contextlib.suppress(OSError):
-                    await writer.wait_closed()
-
-        if not raw or len(raw) > _MAX_MESSAGE_BYTES:
-            raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge returned an invalid response size")
+                with contextlib.suppress(OSError, asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        writer.wait_closed(), timeout=max(0.0, deadline - monotonic())
+                    )
         try:
-            response = json.loads(raw)
-        except (UnicodeDecodeError, json.JSONDecodeError) as parse_error:
-            raise NXToolError(
-                "NX_PROTOCOL_ERROR", "NX bridge returned invalid JSON"
-            ) from parse_error
-        if (
-            response.get("id") != request_id
-            or response.get("protocol_version") != BRIDGE_PROTOCOL_VERSION
-        ):
-            raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge returned an invalid response")
-        if not response.get("ok"):
-            error_payload = response.get("error", {})
-            raise NXToolError(
-                error_payload.get("code", "NX_OPERATION_FAILED"),
-                error_payload.get("message", "NX operation failed"),
-                suggestion=error_payload.get("suggestion"),
-                nx_code=error_payload.get("nx_code"),
-                retryable=error_payload.get("retryable", False),
-                details=error_payload.get("details"),
-            )
-        result = response.get("result", {})
-        if not isinstance(result, dict):
-            raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge result must be an object")
-        return result
+            if not raw.endswith(b"\n") or len(raw) > _MAX_MESSAGE_BYTES:
+                raise NXToolError(
+                    "NX_PROTOCOL_ERROR", "NX bridge returned an invalid response size"
+                )
+            response = _decode_message(raw)
+            if (
+                response.get("jsonrpc") != "2.0"
+                or response.get("id") != request_id
+                or type(response.get("protocol_version")) is not int
+                or response["protocol_version"] != BRIDGE_PROTOCOL_VERSION
+                or type(response.get("ok")) is not bool
+            ):
+                raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge returned an invalid response")
+            if response["ok"]:
+                result = response.get("result")
+                if not isinstance(result, dict) or "error" in response:
+                    raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge result must be an object")
+                return result
+            payload = response.get("error")
+            if (
+                not isinstance(payload, dict)
+                or "result" in response
+                or not isinstance(payload.get("code"), str)
+                or not payload["code"]
+                or not isinstance(payload.get("message"), str)
+                or type(payload.get("retryable", False)) is not bool
+                or (payload.get("details") is not None and not isinstance(payload["details"], dict))
+                or (
+                    payload.get("suggestion") is not None
+                    and not isinstance(payload["suggestion"], str)
+                )
+                or (
+                    payload.get("nx_code") is not None
+                    and type(payload["nx_code"]) not in (int, str)
+                )
+            ):
+                raise NXToolError("NX_PROTOCOL_ERROR", "NX bridge returned an invalid error")
+        except NXToolError as error:
+            error.details["execution_state"] = "unknown"
+            raise
+        details = payload.get("details") or {}
+        raise NXToolError(
+            payload["code"],
+            payload["message"],
+            suggestion=payload.get("suggestion"),
+            nx_code=payload.get("nx_code"),
+            details=details,
+            retryable=payload.get("retryable", False)
+            and details.get("execution_state") == "not_started",
+        )
 
 
 class DescriptorBridgeClient:
@@ -361,6 +546,7 @@ class DescriptorBridgeClient:
                 "NX_BRIDGE_UNAVAILABLE",
                 "Start the NX MCP bridge inside Siemens NX before calling tools.",
                 retryable=True,
+                details={"execution_state": "not_started"},
             ) from error
         if descriptor.protocol_version != BRIDGE_PROTOCOL_VERSION:
             raise NXToolError(

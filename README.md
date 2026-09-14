@@ -17,7 +17,10 @@ The sidecar, bridge protocol, input/output schemas, workspace confinement, and
 core workflow have automated coverage. The Python bridge passed the documented
 20-run batch workflow on Siemens NX 2506 (`ugraf` 2506.4021) on 2026-08-21.
 It remains opt-in while a non-blocking NX GUI event pump is validated; the
-bundled Python Journal runner is intentionally batch-only.
+bundled Python Journal runner is intentionally batch-only. The safety-hardening
+changes have local regression coverage and a successful NX runtime import probe
+on 2026-09-14, but still need a new full real-NX acceptance run; the historical
+20-run result does not certify the changed save/close/undo behavior.
 
 The default `tools/list` exposes only these 16 tools:
 
@@ -32,6 +35,19 @@ The 34 old tools outside the certified surface remain unverified and hidden by
 default. `NX_MCP_ENABLE_EXPERIMENTAL=1` registers them through the bridge;
 Journal tools additionally require `NX_MCP_ENABLE_JOURNAL=1`.
 
+## MCP SDK v2 support
+
+The sidecar now uses the official Python SDK `mcp>=2.2,<3` and
+`pydantic>=2.12,<3`, with Python 3.10+ retained. `MCPServer` replaces the SDK's
+old `FastMCP` class; this is not a migration to the separate FastMCP package.
+Modern clients use MCP `2026-07-28` discovery over stdio, while initialize-based
+clients remain supported. The smoke client negotiates automatically.
+
+Default tools, JSON field names on the wire, existing NX error codes, and the
+internal NX bridge protocol v1 remain unchanged. The SDK major version is
+independent of this project's `0.2.0.dev0` release gate. See
+[MCP SDK v2 migration](docs/migration-mcp-sdk-2.md) for setup and compatibility.
+
 ## Requirements
 
 - Windows with a local native Siemens NX installation (validated on NX 2506)
@@ -42,11 +58,18 @@ Journal tools additionally require `NX_MCP_ENABLE_JOURNAL=1`.
   `pydantic` dependency)
 - A dedicated test/project directory configured as `NX_MCP_WORKSPACE`
 
-Install the sidecar and development dependencies:
+Install the sidecar and development dependencies in a dedicated environment
+from PowerShell 7 (do not reuse an interpreter still running SDK v1):
 
 ```powershell
-python -m pip install -e ".[dev]"
+$env:HTTP_PROXY = $env:HTTPS_PROXY = "http://127.0.0.1:7897"
+$env:NO_PROXY = "localhost,127.0.0.1"
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 ```
+
+Use the absolute path to `.venv/Scripts/python.exe` as the MCP client's
+`command` below, or activate this environment before using `python` commands.
 
 ## Internal feasibility run
 
@@ -94,7 +117,12 @@ agreed minimal C# NX-side bridge before enabling an interactive pilot.
   paths, and resolved links outside the workspace are rejected.
 - Journal execution and all 34 legacy tools are disabled by default. Both the
   sidecar and NX bridge must receive the opt-in environment flags.
-- Object IDs are opaque and valid only for the current part session.
+- Object IDs are opaque and valid only for the current part session. Undo and
+  failed mutation rollback invalidate references; query new IDs before use.
+- Save validates the active part's path; save and close affect only the work
+  part, not its assembly tree. A failed rollback blocks writes until recovery.
+- Timeout/disconnect errors distinguish `not_started` from `unknown` execution.
+  Never automatically replay an uncertain mutation; inspect the model first.
 
 ## Local quality gates
 
@@ -121,6 +149,7 @@ labelled `self-hosted`, `windows`, and `nx`, with `NX_RUN_JOURNAL` set to the
 absolute path of `run_journal.exe`.
 
 See [architecture](docs/architecture.md), [0.1 migration](docs/migration-0.2.md),
+[MCP SDK v2 migration](docs/migration-mcp-sdk-2.md),
 and [real NX validation](docs/real-nx-validation.md) for implementation and
 release gates.
 

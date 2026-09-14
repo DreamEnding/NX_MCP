@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.client import Client
 
 from nx_mcp.certified import CERTIFIED_TOOL_NAMES
 from nx_mcp.contracts import NXToolError
@@ -35,7 +35,7 @@ class RecordingBridge:
 async def test_default_server_lists_only_certified_tools():
     server = create_server(StubBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         response = await client.list_tools()
 
     assert {tool.name for tool in response.tools} == CERTIFIED_TOOL_NAMES
@@ -46,11 +46,11 @@ async def test_default_server_lists_only_certified_tools():
 async def test_status_returns_structured_content():
     server = create_server(StubBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool("nx_status", {})
 
-    assert result.isError is False
-    assert result.structuredContent == {
+    assert result.is_error is False
+    assert result.structured_content == {
         "status": "success",
         "connected": True,
         "nx_version": "NX test",
@@ -69,12 +69,12 @@ async def test_create_part_resolves_path_inside_workspace(tmp_path: Path):
     )
     server = create_server(bridge, Workspace(tmp_path))
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool(
             "nx_create_part", {"path": "parts/bracket.prt", "units": "mm"}
         )
 
-    assert result.isError is False
+    assert result.is_error is False
     assert bridge.calls == [
         (
             "nx_create_part",
@@ -88,10 +88,10 @@ async def test_file_tool_rejects_workspace_escape_before_bridge_call(tmp_path: P
     bridge = RecordingBridge({})
     server = create_server(bridge, Workspace(tmp_path))
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool("nx_open_part", {"path": "../secret.prt"})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "NX_PATH_OUTSIDE_WORKSPACE" in result.content[0].text
     assert bridge.calls == []
 
@@ -104,10 +104,10 @@ async def test_bridge_error_preserves_machine_readable_code():
 
     server = create_server(ErrorBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool("nx_save_part", {})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "NX_NO_WORK_PART" in result.content[0].text
 
 
@@ -115,24 +115,24 @@ async def test_bridge_error_preserves_machine_readable_code():
 async def test_certified_tools_publish_strict_input_and_output_schemas():
     server = create_server(StubBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         tools = {tool.name: tool for tool in (await client.list_tools()).tools}
 
-    assert tools["nx_create_part"].inputSchema["properties"]["units"]["enum"] == ["mm", "inch"]
-    assert tools["nx_create_sketch"].inputSchema["properties"]["plane"]["enum"] == [
+    assert tools["nx_create_part"].input_schema["properties"]["units"]["enum"] == ["mm", "inch"]
+    assert tools["nx_create_sketch"].input_schema["properties"]["plane"]["enum"] == [
         "XY",
         "XZ",
         "YZ",
     ]
-    assert tools["nx_extrude"].inputSchema["properties"]["distance"]["exclusiveMinimum"] == 0
-    assert all(tool.outputSchema is not None for tool in tools.values())
+    assert tools["nx_extrude"].input_schema["properties"]["distance"]["exclusiveMinimum"] == 0
+    assert all(tool.output_schema is not None for tool in tools.values())
 
 
 @pytest.mark.asyncio
 async def test_experimental_tools_require_explicit_opt_in_and_keep_journals_disabled():
     server = create_server(StubBridge(), enable_experimental=True)
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
 
     assert names > CERTIFIED_TOOL_NAMES
@@ -147,7 +147,7 @@ async def test_experimental_tools_require_explicit_opt_in_and_keep_journals_disa
 async def test_journal_tools_require_their_own_explicit_opt_in():
     server = create_server(StubBridge(), enable_experimental=True, enable_journal=True)
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
 
     assert {"nx_run_journal", "nx_record_start", "nx_record_stop"} <= names
@@ -162,9 +162,24 @@ async def test_experimental_file_tools_still_enforce_workspace_boundary(tmp_path
         enable_experimental=True,
     )
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool("nx_screenshot", {"path": "../screen.png"})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "NX_PATH_OUTSIDE_WORKSPACE" in result.content[0].text
+    assert bridge.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", ["NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize("tool", ["nx_extrude", "nx_sketch_line"])
+async def test_nonfinite_values_fail_before_bridge_call(tmp_path, value, tool):
+    bridge = RecordingBridge({})
+    server = create_server(bridge, Workspace(tmp_path))
+    params = {"sketch_id": "unused", "distance": value}
+    if tool == "nx_sketch_line":
+        params = {"sketch_id": "unused", "start": {"x": value, "y": 0}, "end": {"x": 1, "y": 1}}
+    async with Client(server) as client:
+        result = await client.call_tool(tool, params)
+    assert result.is_error
     assert bridge.calls == []
