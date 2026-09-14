@@ -155,6 +155,13 @@ release gates.
 
 ## Star History
 
+The chart updates automatically when this repository receives a star and daily
+at 04:37 UTC (12:37 Asia/Shanghai). Changes to the Star History workflow on
+`master` also trigger an update; manual runs remain available in GitHub Actions.
+Daily refreshes reconcile missed events and removed stars. GitHub may delay
+scheduled runs, so the chart is not a real-time counter. Charts are published
+to the dedicated `star-history` branch without changing `master`.
+
 <picture>
   <source
     media="(prefers-color-scheme: dark)"
