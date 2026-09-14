@@ -35,6 +35,43 @@ The 34 old tools outside the certified surface remain unverified and hidden by
 default. `NX_MCP_ENABLE_EXPERIMENTAL=1` registers them through the bridge;
 Journal tools additionally require `NX_MCP_ENABLE_JOURNAL=1`.
 
+## Agent modeling workflow
+
+The canonical [NX modeling skill](skills/nx-modeling/SKILL.md) explains discovery,
+part ownership, units, sketch/extrude sequencing, result checks, and recovery.
+It composes existing tools; it does not add permissions or replace code-enforced
+safety checks. Read it from this checkout; no global skill installation or
+agent-directory copies are created automatically.
+
+### Capabilities and validation
+
+"Implemented", "default", "locally tested", and "real-NX accepted" are separate
+claims. The historical target is native NX 2506 (`ugraf` 2506.4021), batch mode;
+there is no blanket certification of every tool or failure branch.
+
+| Capability | Availability | Local evidence | Current real-runtime boundary |
+| --- | --- | --- | --- |
+| Rectangle/sketch/extrude, queries, STEP, undo, save/reopen | Default tools | Automated core workflow tests | Historical 2026-08-21 batch loop; current safety/SDK changes await a fresh loop |
+| Other default-tool branches, including sketch lines | Default tools | Automated tests | Only scenarios explicitly recorded in the acceptance guide are accepted |
+| Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Current real-NX negative cases await rerun |
+| Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
+| Bridge/process restart | Existing lifecycle | Automated bridge tests | Current independent-process restart test awaits rerun |
+| Interactive GUI scheduling | Not available in bundled runner | Batch runner only | Non-blocking UI scheduler or minimal C# bridge still required |
+| Legacy tools / arbitrary Journals | Disabled by default | Mock-NX coverage only | Unverified; explicit opt-in is not certification |
+| STEP-to-USD sample validation | Separate example, not MCP | Unit tests and opt-in OpenUSD checker fixtures | Fresh NX STEP-to-USD chain remains pending |
+
+See [real NX evidence](docs/real-nx-validation.md) for dates and exact coverage.
+Session object IDs are not permanent asset IDs. Saving/closing the work part
+must not be described as saving/closing all assembly components.
+
+### Independent STEP-to-USD validation
+
+The [USD validation guide](docs/usd-validation.md) runs a small acceptance script
+in a separate Python 3.12 converter environment. It verifies the STEP block from
+this run, its converted mesh, units, world-space dimensions, and dependencies.
+Neither the NX interpreter nor the sidecar needs `usd-convert-cad` or `pxr`.
+No `nx_export_usd` tool, SDK/schema change, or default CI dependency is introduced.
+
 ## MCP SDK v2 support
 
 The sidecar now uses the official Python SDK `mcp>=2.2,<3` and

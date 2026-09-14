@@ -24,6 +24,42 @@ cases, and process restart test therefore still require real-NX acceptance.
 The historical run above does **not** certify these changes. Keep the opt-in
 gates and version `0.2.0.dev0` until that acceptance passes.
 
+### Workflow implementation recheck (2026-09-14)
+
+- Source baseline: `04c04e8` (before the workflow/Skill/USD-only additions).
+- Sidecar: Python 3.12.7, `mcp` 2.2.0, `pydantic` 2.13.5.
+- Installed executable file versions inspected: `ugraf.exe` 2506.4021,
+  `run_journal.exe` 2506.4000. This is not a new NX runtime probe.
+- Local baseline: 249 tests passed; branch-measured coverage 82.92%; Ruff checks,
+  formatting check, and sidecar mypy passed. The relocated checkout's stale
+  editable-install path was repaired before testing; no runtime source changed.
+- No NX process or bridge descriptor was present at preflight. The execution
+  environment rejected the full acceptance launch command before execution.
+  No new runtime probe, 20-run batch result, real negative cases, or restart
+  acceptance resulted from this attempt.
+- Therefore there is no fresh STEP eligible for the downstream USD acceptance.
+  Historical CAD artifacts and generated USD checker fixtures must not substitute
+  for that evidence. See [USD validation status](usd-validation.md#validation-status).
+
+After the workflow additions, the local suite passed with **299 passed,
+13 skipped, 3 real-NX tests deselected**, and 82.99% branch-measured `nx_mcp`
+coverage. Ruff checks, formatting, mypy, and whitespace checks passed. The skipped
+OpenUSD checker tests passed separately in the isolated converter environment.
+
+The Skill passed static validation and an in-process MCP rehearsal with fake NX:
+tool discovery and sketch/extrude structure checks, undo with fresh part/sketch
+references, and a completed mutation with a simulated lost response reconciled
+by queries without replay. No native NX or CAD artifact was involved. Its live
+NX modeling/recovery exercise remains pending. Forced rollback failure and
+uncertain-execution cases remain local fault-injection evidence, not real-NX
+certification. Keep the existing opt-in gates and development version.
+
+The recovery sequence is now a regression test in `tests/test_nx_executor.py`
+for both automatic and legacy MCP negotiation. It checks stale part/sketch
+references after undo and read-only reconciliation of a simulated lost mutation
+response. This tests a scripted tool sequence, not an agent's autonomous use of
+the Skill, a real network response loss, or native NX recovery.
+
 ## SDK v2 sidecar upgrade
 
 The sidecar has migrated to official `mcp>=2.2,<3` and `pydantic>=2.12,<3`.

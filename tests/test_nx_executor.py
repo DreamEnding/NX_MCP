@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -512,3 +513,77 @@ def test_python_nx_bridge_requires_explicit_feasibility_gate(tmp_path: Path, mon
 
     with pytest.raises(RuntimeError, match="has not been verified"):
         start_bridge(tmp_path)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["auto", "legacy"])
+async def test_mcp_recovery_refreshes_references_and_reconciles_without_replay(tmp_path, mode):
+    """Exercise the Skill's recovery sequence, not autonomous agent behavior or native NX."""
+    workspace = Workspace(tmp_path)
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", workspace)
+
+    class ResponseLossBridge:
+        extrude_calls = 0
+        lose_response = False
+
+        async def call(self, method, params):
+            if method == "nx_extrude":
+                self.extrude_calls += 1
+            result = executor.execute(method, params)
+            if method == "nx_extrude" and self.lose_response:
+                self.lose_response = False
+                raise NXToolError(
+                    "NX_TEST_RESPONSE_LOST",
+                    "Test-only lost response after the fake mutation completed",
+                    retryable=False,
+                    details={"execution_state": "unknown"},
+                )
+            return result
+
+    bridge = ResponseLossBridge()
+    async with Client(create_server(bridge, workspace), mode=mode) as client:
+
+        async def call(name, arguments=None):
+            result = await client.call_tool(name, arguments or {})
+            assert not result.is_error, result.content
+            return result.structured_content
+
+        part = (await call("nx_status"))["active_part"]
+        sketch = (await call("nx_list_sketches"))["objects"][0]
+        bodies = len((await call("nx_list_bodies"))["objects"])
+        features = len((await call("nx_list_features"))["objects"])
+        await call("nx_extrude", {"sketch_id": sketch["id"], "distance": 12.5})
+        assert len((await call("nx_list_bodies"))["objects"]) == bodies + 1
+        await call("nx_undo")
+        assert len((await call("nx_list_bodies"))["objects"]) == bodies
+
+        stale = await client.call_tool("nx_extrude", {"sketch_id": sketch["id"], "distance": 12.5})
+        assert stale.is_error
+        assert "NX_OBJECT_STALE" in stale.content[0].text
+        fresh_part = (await call("nx_status"))["active_part"]
+        assert fresh_part["id"] != part["id"]
+        assert fresh_part["part_id"] == part["part_id"]
+        fresh_sketch = (await call("nx_list_sketches"))["objects"][0]
+        assert fresh_sketch["id"] != sketch["id"]
+        assert fresh_sketch["part_id"] == fresh_part["part_id"]
+
+        bridge.lose_response = True
+        uncertain = await client.call_tool(
+            "nx_extrude", {"sketch_id": fresh_sketch["id"], "distance": 12.5}
+        )
+        assert uncertain.is_error
+        text = uncertain.content[0].text
+        error = json.loads(text[text.index("{") :])
+        assert error["code"] == "NX_TEST_RESPONSE_LOST"
+        assert error["details"] == {"execution_state": "unknown"}
+        assert error["retryable"] is False
+        assert bridge.extrude_calls == 3  # Success, stale rejection, response loss.
+
+        # Read back the completed edit instead of replaying the uncertain mutation.
+        assert (await call("nx_status"))["active_part"] == fresh_part
+        assert len((await call("nx_list_bodies"))["objects"]) == bodies + 1
+        assert len((await call("nx_list_features"))["objects"]) == features + 1
+        assert bridge.extrude_calls == 3
+        assert not session.Parts.Work.saved
+        assert not list(tmp_path.iterdir())  # No save/export/close cleanup side effects.
