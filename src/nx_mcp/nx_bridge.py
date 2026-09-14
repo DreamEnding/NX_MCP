@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import inspect
+import math
 import os
 import secrets
 from collections.abc import Callable
@@ -18,7 +20,7 @@ from nx_mcp.bridge import (
     default_descriptor_path,
 )
 from nx_mcp.runtime import NXToolError, ObjectKind
-from nx_mcp.workspace import Workspace
+from nx_mcp.workspace import Workspace, WorkspaceViolation
 
 
 class NXOpenExecutor:
@@ -50,6 +52,8 @@ class NXOpenExecutor:
         self.enable_journal = enable_experimental and enable_journal
         self.objects = ObjectRegistry()
         self._undo_marks: list[Any] = []
+        self._undo_part_id: str | None = None
+        self._unsafe_parts: set[str] = set()
         self._handlers: dict[str, Callable[..., dict[str, Any]]] = {
             "nx_status": self._status,
             "nx_create_part": self._create_part,
@@ -70,6 +74,17 @@ class NXOpenExecutor:
         }
 
     def execute(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+        part = self._work_part(required=False)
+        part_id = self._part_id(part) if part is not None else None
+        self._sync_undo_part(part_id)
+        if part_id in self._unsafe_parts and not (
+            method in {"nx_status", "nx_list_sketches", "nx_list_bodies", "nx_list_features"}
+            or (method == "nx_close_part" and params.get("save") is False)
+        ):
+            raise NXToolError(
+                "NX_ROLLBACK_FAILED",
+                "This part requires recovery: close without saving and reopen, or restart the bridge.",
+            )
         handler = self._handlers.get(method)
         if handler is None:
             if self.enable_experimental:
@@ -82,39 +97,117 @@ class NXOpenExecutor:
                     enable_journal=self.enable_journal,
                 )
             raise NXToolError("NX_TOOL_NOT_FOUND", f"Unsupported bridge command: {method}")
+        self._validate_params(handler, params)
         undo_mark = None
         try:
             if method in self._MODEL_MUTATIONS:
+                self._work_part()
                 undo_mark = self.session.SetUndoMark(
                     self.nxopen.Session.MarkVisibility.Visible,
                     f"NX MCP: {method}",
                 )
             result = handler(**params)
+            current_part = self._work_part(required=False)
+            self._sync_undo_part(self._part_id(current_part) if current_part is not None else None)
             if undo_mark is not None:
                 self._undo_marks.append(undo_mark)
             return result
+        except WorkspaceViolation as error:
+            raise NXToolError("NX_PATH_OUTSIDE_WORKSPACE", str(error)) from error
         except NXToolError as error:
             if undo_mark is not None:
-                self._rollback(undo_mark, error)
+                self._rollback(undo_mark, error, part_id)
             raise
         except Exception as error:
             if undo_mark is not None:
-                self._rollback(undo_mark, error)
+                self._rollback(undo_mark, error, part_id)
             raise NXToolError(
                 "NX_API_ERROR",
                 str(error),
                 nx_code=getattr(error, "ErrorCode", None),
             ) from error
 
-    def _rollback(self, undo_mark: Any, original_error: Exception) -> None:
+    def _sync_undo_part(self, part_id: str | None) -> None:
+        if self._undo_part_id != part_id:
+            self._undo_marks.clear()
+            self._undo_part_id = part_id
+
+    @staticmethod
+    def _number(value: Any) -> float:
+        try:
+            if type(value) not in (int, float) or not math.isfinite(value):
+                raise ValueError
+            return float(value)
+        except (ValueError, OverflowError) as error:
+            raise NXToolError(
+                "NX_INVALID_ARGUMENT", "Coordinates and distances must be finite numbers"
+            ) from error
+
+    def _validate_params(self, handler: Callable[..., Any], params: dict[str, Any]) -> None:
+        try:
+            bound = inspect.signature(handler).bind(**params)
+        except TypeError as error:
+            raise NXToolError(
+                "NX_INVALID_ARGUMENT", "Command parameters do not match its signature"
+            ) from error
+        bound.apply_defaults()
+        values = bound.arguments
+        for field, choices in (("units", ("mm", "inch")), ("plane", ("XY", "XZ", "YZ"))):
+            if field in values and values[field] not in choices:
+                raise NXToolError("NX_INVALID_ARGUMENT", f"Invalid {field}")
+        for field in ("path", "sketch_id"):
+            if field in values and (
+                not isinstance(values[field], str)
+                or not values[field].strip()
+                or "\0" in values[field]
+            ):
+                raise NXToolError("NX_INVALID_ARGUMENT", f"{field} must be a non-empty string")
+        if values.get("name") is not None and not isinstance(values["name"], str):
+            raise NXToolError("NX_INVALID_ARGUMENT", "name must be a string or null")
+        for field in ("save", "reverse"):
+            if field in values and type(values[field]) is not bool:
+                raise NXToolError("NX_INVALID_ARGUMENT", f"{field} must be a boolean")
+        if "distance" in values and self._number(values["distance"]) <= 0:
+            raise NXToolError("NX_INVALID_ARGUMENT", "distance must be greater than zero")
+        points = {}
+        for field in ("start", "end", "corner1", "corner2"):
+            if field in values:
+                point = values[field]
+                if not isinstance(point, dict) or set(point) != {"x", "y"}:
+                    raise NXToolError("NX_INVALID_ARGUMENT", f"{field} must contain x and y")
+                points[field] = (self._number(point["x"]), self._number(point["y"]))
+        if "start" in points and points["start"] == points["end"]:
+            raise NXToolError("NX_INVALID_ARGUMENT", "Line length must be non-zero")
+        if "corner1" in points and any(
+            a == b for a, b in zip(points["corner1"], points["corner2"], strict=True)
+        ):
+            raise NXToolError("NX_INVALID_ARGUMENT", "Rectangle width and height must be non-zero")
+        if "sketch_id" in values:
+            self.objects.resolve(
+                values["sketch_id"],
+                expected_kind="sketch",
+                part_id=self._part_id(self._work_part()),
+            )
+
+    def _rollback(self, undo_mark: Any, original_error: Exception, part_id: str | None) -> None:
         try:
             self.session.UndoToMark(undo_mark, None)
+            self.session.DeleteUndoMark(undo_mark, None)
         except Exception as rollback_error:
+            self._undo_marks.clear()
+            if part_id is not None:
+                self._unsafe_parts.add(part_id)
             raise NXToolError(
                 "NX_ROLLBACK_FAILED",
-                f"Operation failed and rollback also failed: {rollback_error}",
-                details={"operation_error": str(original_error)},
+                "Operation failed and rollback requires recovery: close without saving and reopen, or restart the bridge.",
+                details={
+                    "operation_error": str(original_error),
+                    "rollback_error": str(rollback_error),
+                },
             ) from rollback_error
+        finally:
+            if part_id is not None:
+                self.objects.invalidate_part(part_id)
 
     def _work_part(self, *, required: bool = True) -> Any | None:
         part = getattr(self.session.Parts, "Work", None)
@@ -209,10 +302,19 @@ class NXOpenExecutor:
 
     def _save_part(self) -> dict[str, Any]:
         part = self._work_part()
-        part.Save(
-            self.nxopen.BasePart.SaveComponents.TrueValue,
-            self.nxopen.BasePart.CloseAfterSave.FalseValue,
-        )
+        path = getattr(part, "FullPath", "")
+        if not isinstance(path, str) or not path or not Path(path).is_absolute():
+            raise NXToolError("NX_INVALID_ARGUMENT", "The work part has no absolute save path")
+        self.workspace.ensure_inside(path)
+        save_status = None
+        try:
+            save_status = part.Save(
+                self.nxopen.BasePart.SaveComponents.FalseValue,
+                self.nxopen.BasePart.CloseAfterSave.FalseValue,
+            )
+        finally:
+            if save_status is not None:
+                save_status.Dispose()
         self._undo_marks.clear()
         return {"message": f"Saved part: {self._name(part, 'Part')}"}
 
@@ -223,11 +325,12 @@ class NXOpenExecutor:
         if save:
             self._save_part()
         part.Close(
-            self.nxopen.BasePart.CloseWholeTree.TrueValue,
+            self.nxopen.BasePart.CloseWholeTree.FalseValue,
             self.nxopen.BasePart.CloseModified.CloseModified,
             None,
         )
         self.objects.invalidate_part(part_id)
+        self._unsafe_parts.discard(part_id)
         self._undo_marks.clear()
         return {"message": f"Closed part: {part_name}"}
 
@@ -413,7 +516,8 @@ class NXOpenExecutor:
         if not self._undo_marks:
             raise NXToolError("NX_UNDO_UNAVAILABLE", "No NX MCP operation is available to undo")
         part = self._work_part()
-        self.session.UndoToMark(self._undo_marks.pop(), None)
+        self.session.UndoToMark(self._undo_marks[-1], None)
+        self._undo_marks.pop()
         self.objects.invalidate_part(self._part_id(part))
         return {"message": "Undo successful"}
 
@@ -498,7 +602,12 @@ def start_bridge(
         token=token,
     )
     destination = Path(descriptor_path) if descriptor_path else default_descriptor_path()
-    descriptor.write(destination)
+    try:
+        descriptor.write(destination)
+    except Exception:
+        dispatcher.stop()
+        server.stop()
+        raise
     _runtime = BridgeRuntime(server, dispatcher, descriptor, destination)
     return descriptor
 

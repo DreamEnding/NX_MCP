@@ -8,7 +8,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.client import Client
 
 from nx_mcp.certified import CERTIFIED_TOOL_NAMES
 from nx_mcp.server import create_server
@@ -97,12 +97,12 @@ async def test_server_reads_workspace_from_environment(
     )
     server = create_server(bridge)
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         result = await client.call_tool(
             "nx_create_part", {"path": "parts/bracket.prt", "units": "mm"}
         )
 
-    assert result.isError is False
+    assert result.is_error is False
     assert bridge.calls == [
         (
             "nx_create_part",
@@ -119,7 +119,7 @@ async def test_server_reads_experimental_and_journal_opt_ins_from_environment(
     monkeypatch.setenv("NX_MCP_ENABLE_JOURNAL", "1")
     server = create_server(StubBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
 
     assert {"nx_blend", "nx_run_journal", "nx_record_start", "nx_record_stop"} <= names
@@ -132,7 +132,7 @@ async def test_server_keeps_journal_tools_disabled_without_experimental_opt_in(
     monkeypatch.setenv("NX_MCP_ENABLE_JOURNAL", "1")
     server = create_server(StubBridge())
 
-    async with create_connected_server_and_client_session(server) as client:
+    async with Client(server) as client:
         names = {tool.name for tool in (await client.list_tools()).tools}
 
     assert names == CERTIFIED_TOOL_NAMES

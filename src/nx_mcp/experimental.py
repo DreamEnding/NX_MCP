@@ -11,8 +11,8 @@ from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.exceptions import ToolError as MCPToolError
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError as MCPToolError
 
 from nx_mcp.response import ToolError, ToolResult
 from nx_mcp.runtime import NXToolError
@@ -103,7 +103,7 @@ def _secure_params(
 
 
 def add_experimental_tools(
-    mcp: FastMCP,
+    mcp: MCPServer,
     call: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]],
     certified_names: set[str],
     workspace: Workspace | None,

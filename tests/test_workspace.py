@@ -34,3 +34,25 @@ def test_workspace_rejects_absolute_path_outside_root(tmp_path: Path):
 
     with pytest.raises(WorkspaceViolation, match="workspace"):
         workspace.ensure_inside(tmp_path.parent / "outside.prt")
+
+
+@pytest.mark.parametrize("path", ["C:part.prt", "\\part.prt", "\\\\server\\share\\part.prt"])
+def test_workspace_rejects_windows_anchored_paths_on_every_platform(tmp_path, path):
+    with pytest.raises(WorkspaceViolation):
+        Workspace(tmp_path).resolve(path)
+
+
+def test_workspace_rejects_symlink_escape(tmp_path):
+    root = tmp_path / "workspace"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    link = root / "link"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("Directory symlinks are unavailable on this host")
+    with pytest.raises(WorkspaceViolation):
+        Workspace(root).resolve("link/escape.prt")
+    with pytest.raises(WorkspaceViolation):
+        Workspace(root).ensure_inside(link / "escape.prt")

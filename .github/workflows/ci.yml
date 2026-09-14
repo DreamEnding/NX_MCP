@@ -44,6 +44,9 @@ jobs:
           cache: pip
       - name: Install package and dev dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Check declared SDK and Pydantic minimums
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+        run: python -m pip install "mcp==2.2.0" "pydantic==2.12.0"
       - name: Run core test suite
         run: >-
           python -m pytest -p no:cacheprovider
@@ -105,3 +108,33 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Run mypy
         run: python -m mypy src/nx_mcp
+
+  wheel:
+    name: isolated wheel import (no NX)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build wheel
+        run: python -m pip wheel . --no-deps -w dist
+      - name: Install wheel outside checkout
+        shell: pwsh
+        run: |
+          python -m venv "$env:RUNNER_TEMP/wheel-env"
+          $python = "$env:RUNNER_TEMP/wheel-env/bin/python"
+          & $python -m pip install (Get-Item dist/nx_mcp-*.whl).FullName
+          if ($LASTEXITCODE -ne 0) { throw "Wheel installation failed" }
+          Push-Location $env:RUNNER_TEMP
+          try {
+            & $python -c "import importlib.metadata as m; import nx_mcp.server, nx_mcp.nx_bridge; assert m.version('nx-mcp') == '0.2.0.dev0'; assert {e.name for e in m.distribution('nx-mcp').entry_points} >= {'nx-mcp', 'nx-mcp-smoke'}; assert all(callable(e.load()) for e in m.distribution('nx-mcp').entry_points)"
+            if ($LASTEXITCODE -ne 0) { throw "Wheel imports or entry points failed" }
+            & $python -m nx_mcp.real_smoke --help
+            if ($LASTEXITCODE -ne 0) { throw "Smoke CLI failed" }
+          } finally { Pop-Location }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl

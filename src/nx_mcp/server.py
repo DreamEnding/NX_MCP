@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from nx_mcp.bridge import DescriptorBridgeClient
 from nx_mcp.certified import BridgeCaller, create_certified_server
@@ -23,7 +23,7 @@ def create_server(
     *,
     enable_experimental: bool | None = None,
     enable_journal: bool | None = None,
-) -> FastMCP:
+) -> MCPServer:
     """Create the certified v0.2 MCP server."""
     if workspace is None and (workspace_root := os.environ.get("NX_MCP_WORKSPACE")):
         workspace = Workspace(Path(workspace_root))

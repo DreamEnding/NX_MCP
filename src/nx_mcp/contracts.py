@@ -27,8 +27,8 @@ __all__ = [
 class Point2D(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    x: float
-    y: float
+    x: float = Field(allow_inf_nan=False)
+    y: float = Field(allow_inf_nan=False)
 
 
 class ToolSuccess(BaseModel):

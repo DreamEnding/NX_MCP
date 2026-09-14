@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 from typing import Annotated, Any, Literal, Protocol
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.exceptions import ToolError as MCPToolError
+from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError as MCPToolError
 from pydantic import Field
 
+from nx_mcp import __version__
 from nx_mcp.contracts import (
     ExportResult,
     ExtrudeResult,
@@ -53,8 +54,12 @@ def create_certified_server(
     *,
     enable_experimental: bool = False,
     enable_journal: bool = False,
-) -> FastMCP:
-    mcp = FastMCP("nx-mcp", instructions="Certified Siemens NX tools for a local NX session.")
+) -> MCPServer:
+    mcp = MCPServer(
+        "nx-mcp",
+        instructions="Certified Siemens NX tools for a local NX session.",
+        version=__version__,
+    )
 
     async def call(method: str, params: dict[str, Any]) -> dict[str, Any]:
         try:
@@ -167,7 +172,7 @@ def create_certified_server(
     @mcp.tool()
     async def nx_extrude(
         sketch_id: str,
-        distance: Annotated[float, Field(gt=0)],
+        distance: Annotated[float, Field(gt=0, allow_inf_nan=False)],
         reverse: bool = False,
     ) -> ExtrudeResult:
         """Extrude a sketch into a new body."""

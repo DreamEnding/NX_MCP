@@ -44,6 +44,11 @@ jobs:
             throw "NX_RUN_JOURNAL does not exist: $env:NX_RUN_JOURNAL"
           }
 
+          $descriptorPath = Join-Path $env:LOCALAPPDATA 'nx-mcp\bridge.json'
+          if ((Test-Path -LiteralPath $descriptorPath) -or (Get-Process ugraf,run_journal -ErrorAction SilentlyContinue)) {
+            throw "Dedicated runner has an existing NX session or descriptor; refusing to replace it."
+          }
+
           $nxWorkspace = Join-Path $env:RUNNER_TEMP "nx-mcp-real-nx-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           New-Item -ItemType Directory -Force -Path $nxWorkspace | Out-Null
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "NX_MCP_WORKSPACE=$nxWorkspace"
@@ -88,7 +93,8 @@ jobs:
             throw "NX bridge did not write a fresh descriptor within two minutes."
           }
       - name: Run real NX acceptance test
-        run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx.py
+        shell: pwsh
+        run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx.py --junitxml="$env:NX_MCP_WORKSPACE/acceptance.xml"
       - name: Stop NX bridge
         if: always()
         shell: pwsh
@@ -105,3 +111,17 @@ jobs:
               }
             }
           }
+
+      - name: Verify reconnection with separately owned NX processes
+        shell: pwsh
+        run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
+      - name: Upload allowlisted acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-nx-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.NX_MCP_WORKSPACE }}/nx-runtime-probe.json
+            ${{ env.NX_MCP_WORKSPACE }}/acceptance.xml
+            ${{ env.NX_MCP_WORKSPACE }}/restart.xml
+          if-no-files-found: warn
