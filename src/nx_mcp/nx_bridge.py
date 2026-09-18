@@ -335,15 +335,31 @@ class NXOpenExecutor:
         return {"message": f"Closed part: {part_name}"}
 
     def _export_step(self, path: str) -> dict[str, Any]:
-        self._work_part()
+        part = self._work_part()
         destination = self.workspace.ensure_inside(path)
         destination.parent.mkdir(parents=True, exist_ok=True)
         builder = self.session.DexManager.CreateStepCreator()
         try:
+            # NXOpen does not load the interactive STEP defaults (ugstep214.def): the
+            # layer mask starts empty and every object type is off, so the file would
+            # contain no geometry. A saved, unmodified part is translated from
+            # InputFile, which also starts empty; a modified part still exports its
+            # in-session model. Hold makes Commit wait for the translator.
+            builder.InputFile = part.FullPath
+            builder.LayerMask = "1-256"
+            builder.ObjectTypes.Solids = True
+            builder.ObjectTypes.Surfaces = True
+            builder.ProcessHoldFlag = True
             builder.OutputFile = str(destination)
             builder.Commit()
         finally:
             builder.Destroy()
+        if not destination.is_file() or destination.stat().st_size == 0:
+            raise NXToolError(
+                "NX_OPERATION_FAILED",
+                "The STEP translator wrote no output; "
+                f"see {destination.with_suffix('.log').name} in the workspace.",
+            )
         return {
             "path": str(destination),
             "message": f"Exported STEP: {destination.name}",
