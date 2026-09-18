@@ -207,8 +207,23 @@ class FakeLoadStatus:
 
 
 class FakeStepCreator:
+    """Mirrors NXOpen's defaults: no input file, no layers and no object types.
+
+    Like NX with a saved display part, it writes nothing without an input file.
+    """
+
+    def __init__(self):
+        self.InputFile = ""
+        self.LayerMask = ""
+        self.ObjectTypes = SimpleNamespace(Solids=False, Surfaces=False, Curves=False)
+        self.ProcessHoldFlag = False
+
     def Commit(self):
-        Path(self.OutputFile).write_text("STEP", encoding="utf-8")
+        if not self.InputFile:
+            return
+        exports_solids = bool(self.LayerMask) and self.ObjectTypes.Solids
+        content = "STEP MANIFOLD_SOLID_BREP" if exports_solids else "STEP"
+        Path(self.OutputFile).write_text(content, encoding="utf-8")
 
     def Destroy(self):
         pass
@@ -216,7 +231,8 @@ class FakeStepCreator:
 
 class FakeDexManager:
     def CreateStepCreator(self):
-        return FakeStepCreator()
+        self.last_step_creator = FakeStepCreator()
+        return self.last_step_creator
 
 
 class FakeFileNew:
@@ -373,10 +389,26 @@ def test_open_save_export_and_close_part_lifecycle(tmp_path: Path):
     assert opened["part"]["name"] == "existing"
     assert saved["message"] == "Saved part: existing"
     assert exported["path"].endswith("part.stp")
-    assert Path(exported["path"]).read_text(encoding="utf-8") == "STEP"
+    assert "MANIFOLD_SOLID_BREP" in Path(exported["path"]).read_text(encoding="utf-8")
+    assert session.DexManager.last_step_creator.InputFile == str(source)
+    assert session.DexManager.last_step_creator.ProcessHoldFlag is True
     assert closed["message"] == "Closed part: existing"
     assert session.Parts.last_closed.close_args[:2] == ("part-only", "close")
     assert executor.execute("nx_status", {})["active_part"] is None
+
+
+def test_export_step_fails_when_translator_writes_no_file(tmp_path: Path):
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    session.DexManager.CreateStepCreator = lambda: SimpleNamespace(
+        ObjectTypes=SimpleNamespace(), Commit=lambda: None, Destroy=lambda: None
+    )
+
+    with pytest.raises(NXToolError) as caught:
+        executor.execute("nx_export_step", {"path": str(tmp_path / "out" / "part.stp")})
+
+    assert caught.value.code == "NX_OPERATION_FAILED"
+    assert "part.log" in caught.value.message
 
 
 def test_explicit_sketch_workflow_adds_geometry_to_the_referenced_sketch(tmp_path: Path):

@@ -45,6 +45,11 @@ def _verify_file(path: Path) -> None:
         raise RuntimeError(f"Acceptance output was not created or is empty: {path.name}")
 
 
+def _verify_step_solid(path: Path) -> None:
+    if b"MANIFOLD_SOLID_BREP" not in path.read_bytes():
+        raise RuntimeError(f"STEP export contains no solid geometry: {path.name}")
+
+
 async def run_iteration(
     client: Client,
     workspace: Path,
@@ -90,6 +95,7 @@ async def run_iteration(
         if exported_path != expected_step:
             raise RuntimeError("STEP export returned an unexpected path")
         _verify_file(exported_path)
+        _verify_step_solid(exported_path)
         await _call(client, "nx_undo", {})
         after_undo = await _call(client, "nx_list_bodies", {})
         await _call(client, "nx_save_part", {})
