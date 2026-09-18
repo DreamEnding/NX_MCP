@@ -16,7 +16,15 @@ from nx_mcp.contracts import NXToolError
 pytestmark = pytest.mark.integration
 
 
+def test_default_descriptor_path_honors_explicit_state_directory(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("NX_MCP_STATE_DIR", "C:/shared-state")
+    monkeypatch.setenv("LOCALAPPDATA", "C:/nx-state")
+
+    assert default_descriptor_path() == Path("C:/shared-state") / "bridge.json"
+
+
 def test_default_descriptor_path_prefers_local_app_data(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("NX_MCP_STATE_DIR", raising=False)
     monkeypatch.setenv("LOCALAPPDATA", "C:/nx-state")
     monkeypatch.setenv("XDG_STATE_HOME", "/xdg-state")
 
@@ -26,6 +34,7 @@ def test_default_descriptor_path_prefers_local_app_data(monkeypatch: pytest.Monk
 def test_default_descriptor_path_uses_xdg_state_when_local_app_data_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    monkeypatch.delenv("NX_MCP_STATE_DIR", raising=False)
     monkeypatch.delenv("LOCALAPPDATA", raising=False)
     monkeypatch.setenv("XDG_STATE_HOME", "/xdg-state")
 
@@ -35,6 +44,7 @@ def test_default_descriptor_path_uses_xdg_state_when_local_app_data_is_unavailab
 def test_default_descriptor_path_uses_home_state_as_final_fallback(
     monkeypatch: pytest.MonkeyPatch,
 ):
+    monkeypatch.delenv("NX_MCP_STATE_DIR", raising=False)
     monkeypatch.delenv("LOCALAPPDATA", raising=False)
     monkeypatch.delenv("XDG_STATE_HOME", raising=False)
 
