@@ -229,6 +229,23 @@ class FakeStepCreator:
         pass
 
 
+class FakeLoggingStepCreator(FakeStepCreator):
+    """Adds the translator log that NX names after the output file."""
+
+    def Commit(self):
+        super().Commit()
+        Path(self.OutputFile).with_suffix(".log").write_text("UG to STEP", encoding="utf-8")
+
+
+class FakeEmptyStepCreator(FakeStepCreator):
+    """Like NX with nothing to translate: it writes the log but no STEP file."""
+
+    def Commit(self):
+        Path(self.OutputFile).with_suffix(".log").write_text(
+            "UG to STEP\n! WARNING-  No parts in current input file", encoding="utf-8"
+        )
+
+
 class FakeDexManager:
     def CreateStepCreator(self):
         self.last_step_creator = FakeStepCreator()
@@ -409,6 +426,42 @@ def test_export_step_fails_when_translator_writes_no_file(tmp_path: Path):
 
     assert caught.value.code == "NX_OPERATION_FAILED"
     assert "part.log" in caught.value.message
+
+
+def test_export_step_fails_and_keeps_an_earlier_file_when_no_new_output_is_written(
+    tmp_path: Path,
+):
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    destination = tmp_path / "out" / "part.stp"
+    destination.parent.mkdir()
+    destination.write_text("EARLIER MANIFOLD_SOLID_BREP", encoding="utf-8")
+    session.DexManager.CreateStepCreator = FakeEmptyStepCreator
+
+    with pytest.raises(NXToolError) as caught:
+        executor.execute("nx_export_step", {"path": str(destination)})
+
+    assert caught.value.code == "NX_OPERATION_FAILED"
+    assert "part.log" in caught.value.message
+    assert destination.read_text(encoding="utf-8") == "EARLIER MANIFOLD_SOLID_BREP"
+    # No temporary export or temporary log is left behind, and the log keeps the name
+    # the error message promises.
+    assert sorted(path.name for path in destination.parent.iterdir()) == ["part.log", "part.stp"]
+
+
+def test_export_step_replaces_an_earlier_file_with_new_output(tmp_path: Path):
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    destination = tmp_path / "out" / "part.stp"
+    destination.parent.mkdir()
+    destination.write_text("EARLIER", encoding="utf-8")
+    session.DexManager.CreateStepCreator = FakeLoggingStepCreator
+
+    exported = executor.execute("nx_export_step", {"path": str(destination)})
+
+    assert exported["path"] == str(destination)
+    assert destination.read_text(encoding="utf-8") == "STEP MANIFOLD_SOLID_BREP"
+    assert sorted(path.name for path in destination.parent.iterdir()) == ["part.log", "part.stp"]
 
 
 def test_explicit_sketch_workflow_adds_geometry_to_the_referenced_sketch(tmp_path: Path):
