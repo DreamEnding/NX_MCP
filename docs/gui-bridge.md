@@ -28,7 +28,9 @@ is the case [architecture](architecture.md) reserves for a minimal C# plugin.
 - The executor is a C# port of `NXOpenExecutor` for the 16 certified commands:
   - undo marks, rollback, and stale or wrong-kind IDs;
   - workspace confinement on both sides of the process boundary;
-  - the STEP export settings (`InputFile`, layers `1-256`, solids and surfaces).
+  - the STEP export settings (`InputFile`, layers `1-256`, solids and surfaces),
+    including the temporary directory whose file becomes the destination only
+    after the translator wrote a non-empty STEP.
 
   Legacy and experimental commands are not available.
 - The NX status bar shows `NX MCP: <command>` while a call runs.
@@ -92,7 +94,9 @@ app.
   current. Create or open a workspace part first.
 - A running NXOpen call occupies the UI thread until it returns, like an
   interactive command. NX is free between calls.
-- Stopping cancels queued calls. It does not abort a running call.
+- Stopping cancels queued calls. It does not abort a running call: a stop asked
+  for during a call refuses new work at once and shuts down when that call
+  returns.
 - Only one bridge may own the descriptor. Start refuses while another bridge
   still answers on the descriptor's port.
 

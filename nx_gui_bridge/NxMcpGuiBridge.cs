@@ -1197,6 +1197,62 @@ namespace NxMcp.GuiBridge
             Part part = WorkPart(true);
             string destination = workspace.EnsureInside((string)values["path"]);
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
+            // Translate into a temporary directory beside the destination and move the result
+            // into place only once the translator wrote a non-empty file, so an earlier export
+            // can never make a failed translation look successful. The file keeps its name
+            // there: NX records that name in the STEP header. Same rule as nx_mcp.nx_bridge.
+            string stagingDirectory = Path.Combine(
+                Path.GetDirectoryName(destination),
+                ".nx-mcp-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+            string staging = Path.Combine(stagingDirectory, Path.GetFileName(destination));
+            string log = Path.ChangeExtension(destination, ".log");
+            Directory.CreateDirectory(stagingDirectory);
+            try
+            {
+                TranslateStep(part, staging);
+                if (!File.Exists(staging) || new FileInfo(staging).Length == 0)
+                {
+                    throw new NxToolError(
+                        "NX_OPERATION_FAILED",
+                        "The STEP translator wrote no output; see " +
+                        Path.GetFileName(log) + " in the workspace.");
+                }
+                if (File.Exists(destination))
+                {
+                    File.Replace(staging, destination, null);
+                }
+                else
+                {
+                    File.Move(staging, destination);
+                }
+            }
+            finally
+            {
+                // NX writes its translator log next to the output. Keep that log under the
+                // destination's name, and never leave a partial export behind. Cleanup must not
+                // mask the failure that brought us here.
+                try
+                {
+                    string stagingLog = Path.ChangeExtension(staging, ".log");
+                    if (File.Exists(stagingLog))
+                    {
+                        File.Delete(log);
+                        File.Move(stagingLog, log);
+                    }
+                    Directory.Delete(stagingDirectory, true);
+                }
+                catch (IOException)
+                {
+                }
+                catch (UnauthorizedAccessException)
+                {
+                }
+            }
+            return Result("path", destination, "message", "Exported STEP: " + Path.GetFileName(destination));
+        }
+
+        private void TranslateStep(Part part, string destination)
+        {
             StepCreator builder = session.DexManager.CreateStepCreator();
             try
             {
@@ -1215,14 +1271,6 @@ namespace NxMcp.GuiBridge
             {
                 builder.Destroy();
             }
-            if (!File.Exists(destination) || new FileInfo(destination).Length == 0)
-            {
-                throw new NxToolError(
-                    "NX_OPERATION_FAILED",
-                    "The STEP translator wrote no output; see " +
-                    Path.GetFileNameWithoutExtension(destination) + ".log in the workspace.");
-            }
-            return Result("path", destination, "message", "Exported STEP: " + Path.GetFileName(destination));
         }
 
         private Dictionary<string, object> CreateSketch(Dictionary<string, object> values)
@@ -1440,15 +1488,23 @@ namespace NxMcp.GuiBridge
 
         private readonly Control marshal;
         private readonly Func<string, Dictionary<string, object>, Dictionary<string, object>> executor;
+        private readonly Action callCompleted;
         private readonly ManualResetEvent stopped = new ManualResetEvent(false);
         private volatile bool stopping;
         private bool executing;
 
+        /// <param name="callCompleted">
+        /// Runs on the UI thread after a call returned, so a stop requested during that call can
+        /// finish without reposting itself while the call is still on the stack.
+        /// </param>
         public MainThreadDispatcher(
-            Control marshal, Func<string, Dictionary<string, object>, Dictionary<string, object>> executor)
+            Control marshal,
+            Func<string, Dictionary<string, object>, Dictionary<string, object>> executor,
+            Action callCompleted)
         {
             this.marshal = marshal;
             this.executor = executor;
+            this.callCompleted = callCompleted;
         }
 
         /// <summary>True while an NXOpen call runs; only meaningful on the UI thread.</summary>
@@ -1622,6 +1678,18 @@ namespace NxMcp.GuiBridge
                 pending.State = CallState.Done;
             }
             pending.Done.Set();
+            if (callCompleted != null)
+            {
+                try
+                {
+                    callCompleted();
+                }
+                catch (Exception caught)
+                {
+                    // Never let this escape into NX's message loop.
+                    BridgeHost.Log("after-call handler failed: " + caught.Message);
+                }
+            }
         }
 
         private static void Unlock(UFSession uf)
@@ -2012,6 +2080,7 @@ namespace NxMcp.GuiBridge
         private static BridgeServer server;
         private static string token;
         private static bool exitHooked;
+        private static string pendingStopReason;
 
         public static bool Running
         {
@@ -2069,6 +2138,7 @@ namespace NxMcp.GuiBridge
             {
                 return;
             }
+            pendingStopReason = null;
             Dictionary<string, object> config = LoadConfig();
             string root = Setting(config, "NX_MCP_WORKSPACE", "workspace");
             if (string.IsNullOrEmpty(root))
@@ -2105,7 +2175,7 @@ namespace NxMcp.GuiBridge
             var control = new Control();
             IntPtr handle = control.Handle;  // bind the marshaling window to this (UI) thread
             var executor = new Executor(session, nxVersion, workspace);
-            var callDispatcher = new MainThreadDispatcher(control, executor.Execute);
+            var callDispatcher = new MainThreadDispatcher(control, executor.Execute, CompletePendingStop);
             string secret = NewToken();
             var listener = new BridgeServer(
                 callDispatcher,
@@ -2149,10 +2219,18 @@ namespace NxMcp.GuiBridge
             }
             if (dispatcher.Executing)
             {
-                // Reentered from an NX message pump during a call: stop once it finishes.
-                marshal.BeginInvoke(new MethodInvoker(delegate { Stop(reason); }));
+                // Reentered from an NX message pump while a call runs. Reposting here can run
+                // again before that call returns, so only refuse new work now and let the
+                // dispatcher hand the shutdown back once the call is done.
+                if (pendingStopReason == null)
+                {
+                    pendingStopReason = reason;
+                    dispatcher.Stop();
+                    Log("stop deferred until the running call finishes (" + reason + ")");
+                }
                 return;
             }
+            pendingStopReason = null;
             dispatcher.Stop();
             server.Stop();
             RemoveDescriptor();
@@ -2165,16 +2243,41 @@ namespace NxMcp.GuiBridge
             Log("stopped (" + reason + ")");
         }
 
+        /// <summary>Runs on the UI thread once a call returned: completes a deferred stop.</summary>
+        private static void CompletePendingStop()
+        {
+            if (pendingStopReason == null || !Running || dispatcher.Executing)
+            {
+                return;
+            }
+            // Post the shutdown instead of running it here: this handler is itself a callback of
+            // the marshaling control that Stop disposes.
+            marshal.BeginInvoke(new MethodInvoker(delegate { Stop(pendingStopReason); }));
+        }
+
         /// <summary>
         /// Config beside the DLL wins: an MSIX-packaged MCP client (such as a Store-installed
         /// desktop app) and an NX started from Explorer see different copies of AppData.
         /// </summary>
         private static string[] ConfigCandidates()
         {
-            string addInDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            // The add-in folder is where this assembly was loaded from. The application domain
+            // base directory belongs to NX, not to the DLL.
+            string addInDirectory = null;
+            try
+            {
+                string location = typeof(BridgeHost).Assembly.Location;
+                if (!string.IsNullOrEmpty(location))
+                {
+                    addInDirectory = Path.GetDirectoryName(location);
+                }
+            }
+            catch (Exception)
+            {
+            }
             if (string.IsNullOrEmpty(addInDirectory))
             {
-                addInDirectory = Path.GetDirectoryName(typeof(BridgeHost).Assembly.Location);
+                addInDirectory = AppDomain.CurrentDomain.BaseDirectory;
             }
             return new[] { Path.Combine(addInDirectory, ConfigName), Path.Combine(DefaultStateDirectory, ConfigName) };
         }
