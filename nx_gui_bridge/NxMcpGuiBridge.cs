@@ -2346,22 +2346,68 @@ namespace NxMcp.GuiBridge
             {
                 return;
             }
-            using (var probe = new TcpClient())
+            object storedToken;
+            existing.TryGetValue("token", out storedToken);
+            if (!AnswersAsBridge((int)(long)port, storedToken as string))
             {
-                try
+                Log("ignoring a stale descriptor: port " + port + " does not answer as an NX MCP bridge");
+                return;
+            }
+            object pid;
+            existing.TryGetValue("pid", out pid);
+            throw new InvalidOperationException(
+                "Another NX MCP bridge is already running (pid " + pid + ", port " + port + ").");
+        }
+
+        /// <summary>
+        /// True when the descriptor's port answers an authenticated protocol request the way this
+        /// bridge does. Another process that reused the port must not keep the bridge from
+        /// starting, so anything else counts as a stale descriptor.
+        /// </summary>
+        private static bool AnswersAsBridge(int port, string secret)
+        {
+            try
+            {
+                using (var probe = new TcpClient())
                 {
-                    IAsyncResult attempt = probe.BeginConnect(IPAddress.Loopback, (int)(long)port, null, null);
-                    if (attempt.AsyncWaitHandle.WaitOne(300) && probe.Connected)
+                    IAsyncResult attempt = probe.BeginConnect(IPAddress.Loopback, port, null, null);
+                    if (!attempt.AsyncWaitHandle.WaitOne(300) || !probe.Connected)
                     {
-                        object pid;
-                        existing.TryGetValue("pid", out pid);
-                        throw new InvalidOperationException(
-                            "Another NX MCP bridge is already running (pid " + pid + ", port " + port + ").");
+                        return false;
                     }
+                    probe.EndConnect(attempt);
+                    var request = new Dictionary<string, object>();
+                    request["jsonrpc"] = "2.0";
+                    request["id"] = "nx-mcp-descriptor-probe";
+                    request["protocol_version"] = Protocol.Version;
+                    request["token"] = secret == null ? "" : secret;
+                    request["method"] = "nx_status";
+                    request["params"] = new Dictionary<string, object>();
+                    byte[] payload = Protocol.Utf8.GetBytes(Json.Serialize(request) + "\n");
+                    NetworkStream stream = probe.GetStream();
+                    stream.WriteTimeout = 1000;
+                    stream.ReadTimeout = 2000;
+                    stream.Write(payload, 0, payload.Length);
+                    var answer = new StringBuilder();
+                    var buffer = new byte[4096];
+                    while (answer.Length < 64 * 1024 && answer.ToString().IndexOf('\n') < 0)
+                    {
+                        int read = stream.Read(buffer, 0, buffer.Length);
+                        if (read <= 0)
+                        {
+                            break;
+                        }
+                        answer.Append(Protocol.Utf8.GetString(buffer, 0, read));
+                    }
+                    var reply = Json.Parse(answer.ToString().Trim()) as Dictionary<string, object>;
+                    // An authentication failure still identifies a live bridge; refuse then too.
+                    return reply != null && reply.ContainsKey("ok") &&
+                        (reply.ContainsKey("result") || reply.ContainsKey("error"));
                 }
-                catch (SocketException)
-                {
-                }
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 

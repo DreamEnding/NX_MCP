@@ -98,7 +98,8 @@ app.
   for during a call refuses new work at once and shuts down when that call
   returns.
 - Only one bridge may own the descriptor. Start refuses while another bridge
-  still answers on the descriptor's port.
+  still answers an authenticated request on the descriptor's port, and ignores
+  a descriptor whose port another process has taken over.
 
 ## Validation on NX2206 (build 2206.9101, 2026-09-18)
 
