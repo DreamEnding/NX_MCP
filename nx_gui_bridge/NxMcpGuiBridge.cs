@@ -2148,7 +2148,22 @@ namespace NxMcp.GuiBridge
                     " containing {\"workspace\": \"C:\\\\NX_MCP_WORKSPACE\"}.");
             }
             string state = Setting(config, "NX_MCP_STATE_DIR", "state_dir");
-            stateDirectory = string.IsNullOrEmpty(state) ? DefaultStateDirectory : Path.GetFullPath(state);
+            if (string.IsNullOrEmpty(state))
+            {
+                stateDirectory = DefaultStateDirectory;
+            }
+            else
+            {
+                // A relative value would resolve against NX's working directory, which the
+                // sidecar does not share, so the two sides could disagree on the path.
+                if (!IsFullyQualified(state))
+                {
+                    throw new InvalidOperationException(
+                        "state_dir (or NX_MCP_STATE_DIR) must be an absolute path so that the " +
+                        "bridge and the sidecar agree on it: " + state);
+                }
+                stateDirectory = Path.GetFullPath(state);
+            }
             var workspace = new Workspace(root);
             Directory.CreateDirectory(workspace.Root);
             RefuseLiveDescriptor();
@@ -2282,6 +2297,21 @@ namespace NxMcp.GuiBridge
             return new[] { Path.Combine(addInDirectory, ConfigName), Path.Combine(DefaultStateDirectory, ConfigName) };
         }
 
+        /// <summary>
+        /// True for a drive-rooted or UNC path. Path.IsPathRooted also accepts a drive-relative
+        /// path such as C:state, which still depends on the working directory.
+        /// </summary>
+        private static bool IsFullyQualified(string path)
+        {
+            if (path.Length >= 2 && (path[0] == '\\' || path[0] == '/') &&
+                (path[1] == '\\' || path[1] == '/'))
+            {
+                return true;
+            }
+            return path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' &&
+                (path[2] == '\\' || path[2] == '/');
+        }
+
         private static Dictionary<string, object> LoadConfig()
         {
             foreach (string candidate in ConfigCandidates())
@@ -2346,25 +2376,25 @@ namespace NxMcp.GuiBridge
             {
                 return;
             }
-            object storedToken;
-            existing.TryGetValue("token", out storedToken);
-            if (!AnswersAsBridge((int)(long)port, storedToken as string))
+            if (!IsForeignPort((int)(long)port))
             {
-                Log("ignoring a stale descriptor: port " + port + " does not answer as an NX MCP bridge");
-                return;
+                object pid;
+                existing.TryGetValue("pid", out pid);
+                throw new InvalidOperationException(
+                    "Another NX MCP bridge is already running (pid " + pid + ", port " + port +
+                    "). Delete " + DescriptorPath + " if that bridge is gone.");
             }
-            object pid;
-            existing.TryGetValue("pid", out pid);
-            throw new InvalidOperationException(
-                "Another NX MCP bridge is already running (pid " + pid + ", port " + port + ").");
+            Log("ignoring a stale descriptor: port " + port + " does not answer as an NX MCP bridge");
         }
 
         /// <summary>
-        /// True when the descriptor's port answers an authenticated protocol request the way this
-        /// bridge does. Another process that reused the port must not keep the bridge from
-        /// starting, so anything else counts as a stale descriptor.
+        /// True only when the descriptor's port provably belongs to something else, so a
+        /// descriptor another process has taken over cannot keep this bridge from starting.
+        /// Nothing listening, or an answer that is not a bridge response, is proof. A port that
+        /// accepts and stays silent is not: the bridge behind it may be busy, and overwriting its
+        /// descriptor would strand its sidecar.
         /// </summary>
-        private static bool AnswersAsBridge(int port, string secret)
+        private static bool IsForeignPort(int port)
         {
             try
             {
@@ -2373,37 +2403,65 @@ namespace NxMcp.GuiBridge
                     IAsyncResult attempt = probe.BeginConnect(IPAddress.Loopback, port, null, null);
                     if (!attempt.AsyncWaitHandle.WaitOne(300) || !probe.Connected)
                     {
-                        return false;
+                        return true;
                     }
                     probe.EndConnect(attempt);
                     var request = new Dictionary<string, object>();
                     request["jsonrpc"] = "2.0";
                     request["id"] = "nx-mcp-descriptor-probe";
                     request["protocol_version"] = Protocol.Version;
-                    request["token"] = secret == null ? "" : secret;
+                    // Deliberately invalid: a bridge answers NX_AUTH_FAILED from its socket
+                    // thread, so a busy bridge replies without waiting for NX's UI thread.
+                    request["token"] = "nx-mcp-descriptor-probe";
                     request["method"] = "nx_status";
                     request["params"] = new Dictionary<string, object>();
                     byte[] payload = Protocol.Utf8.GetBytes(Json.Serialize(request) + "\n");
                     NetworkStream stream = probe.GetStream();
                     stream.WriteTimeout = 1000;
                     stream.ReadTimeout = 2000;
-                    stream.Write(payload, 0, payload.Length);
                     var answer = new StringBuilder();
                     var buffer = new byte[4096];
-                    while (answer.Length < 64 * 1024 && answer.ToString().IndexOf('\n') < 0)
+                    bool wrote = false;
+                    try
                     {
-                        int read = stream.Read(buffer, 0, buffer.Length);
-                        if (read <= 0)
+                        stream.Write(payload, 0, payload.Length);
+                        wrote = true;
+                        while (answer.Length < 64 * 1024 && answer.ToString().IndexOf('\n') < 0)
                         {
-                            break;
+                            int read = stream.Read(buffer, 0, buffer.Length);
+                            if (read <= 0)
+                            {
+                                break;
+                            }
+                            answer.Append(Protocol.Utf8.GetString(buffer, 0, read));
                         }
-                        answer.Append(Protocol.Utf8.GetString(buffer, 0, read));
                     }
-                    var reply = Json.Parse(answer.ToString().Trim()) as Dictionary<string, object>;
-                    // An authentication failure still identifies a live bridge; refuse then too.
-                    return reply != null && reply.ContainsKey("ok") &&
-                        (reply.ContainsKey("result") || reply.ContainsKey("error"));
+                    catch (IOException)
+                    {
+                        // A peer that was already gone is not a bridge. Silence after the request
+                        // went out proves nothing, because a busy bridge answers late.
+                        return !wrote;
+                    }
+                    if (answer.Length == 0)
+                    {
+                        return true;
+                    }
+                    Dictionary<string, object> reply;
+                    try
+                    {
+                        reply = Json.Parse(answer.ToString().Trim()) as Dictionary<string, object>;
+                    }
+                    catch (Exception)
+                    {
+                        return true;
+                    }
+                    return !(reply != null && reply.ContainsKey("ok") &&
+                        (reply.ContainsKey("error") || reply.ContainsKey("result")));
                 }
+            }
+            catch (SocketException)
+            {
+                return true;
             }
             catch (Exception)
             {

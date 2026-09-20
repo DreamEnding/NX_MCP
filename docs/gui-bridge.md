@@ -60,7 +60,9 @@ to a local folder: NX locks the DLL while it is loaded.
    both files.
    - `workspace` (or `NX_MCP_WORKSPACE`) is required.
    - `state_dir` (or `NX_MCP_STATE_DIR`) is where the bridge writes
-     `bridge.json` and its log. The default is `%LOCALAPPDATA%\nx-mcp`.
+     `bridge.json` and its log. The default is `%LOCALAPPDATA%\nx-mcp`. It must
+     be an absolute path: a relative one would resolve against each process's
+     own working directory, and both sides must name the same file.
 2. Load the add-in:
    - **On demand:** use File > Execute > NX Open (Ctrl+U) and select
      `NxMcpGuiBridge.dll`. A message shows the port and the descriptor path.
@@ -97,9 +99,12 @@ app.
 - Stopping cancels queued calls. It does not abort a running call: a stop asked
   for during a call refuses new work at once and shuts down when that call
   returns.
-- Only one bridge may own the descriptor. Start refuses while another bridge
-  still answers an authenticated request on the descriptor's port, and ignores
-  a descriptor whose port another process has taken over.
+- Only one bridge may own the descriptor. Start probes the descriptor's port
+  with a deliberately invalid token, which a bridge rejects from its socket
+  thread without waiting for NX, and refuses to start unless the answer proves
+  the port belongs to something else. Nothing listening, a closed connection or
+  a reply that is not a bridge response is such proof; silence is not, because
+  a busy bridge answers late.
 
 ## Validation on NX2206 (build 2206.9101, 2026-09-18)
 
@@ -135,7 +140,8 @@ folder of a test NX:
 | STEP output | 20 of 20 files had one solid, and `FILE_NAME` in the header stayed the requested `run-01.stp`; the sizes match the runs before the change |
 | Three exports to the same path: a fresh part, over the existing file, and after a save | each one replaced the destination with a one-solid STEP and left no temporary directory behind |
 | Descriptor whose port an unrelated service holds | logged as stale and ignored; the bridge started |
-| Descriptor served by a live bridge | start refused, naming that bridge's pid and port, and left the descriptor untouched |
+| Descriptor served by an idle live bridge | start refused, naming that bridge's pid and port, and left the descriptor untouched |
+| Descriptor served by a live bridge busy inside a call | start refused as well: the probe gets no answer in time, and silence does not count as proof that the port is free |
 | Stop file | descriptor removed |
 
 Not yet exercised:

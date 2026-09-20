@@ -16,11 +16,34 @@ from nx_mcp.contracts import NXToolError
 pytestmark = pytest.mark.integration
 
 
-def test_default_descriptor_path_honors_explicit_state_directory(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setenv("NX_MCP_STATE_DIR", "C:/shared-state")
+def test_default_descriptor_path_honors_explicit_state_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("NX_MCP_STATE_DIR", str(tmp_path / "shared-state"))
     monkeypatch.setenv("LOCALAPPDATA", "C:/nx-state")
 
-    assert default_descriptor_path() == Path("C:/shared-state") / "bridge.json"
+    assert default_descriptor_path() == tmp_path / "shared-state" / "bridge.json"
+
+
+def test_default_descriptor_path_rejects_a_relative_state_directory(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("NX_MCP_STATE_DIR", "shared-state")
+
+    with pytest.raises(NXToolError) as caught:
+        default_descriptor_path()
+
+    assert caught.value.code == "NX_INVALID_ARGUMENT"
+    assert "absolute" in caught.value.message
+
+
+def test_default_descriptor_path_treats_an_empty_state_directory_as_unset(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setenv("NX_MCP_STATE_DIR", "")
+    monkeypatch.setenv("LOCALAPPDATA", "C:/nx-state")
+
+    assert default_descriptor_path() == Path("C:/nx-state") / "nx-mcp" / "bridge.json"
 
 
 def test_default_descriptor_path_prefers_local_app_data(monkeypatch: pytest.MonkeyPatch):

@@ -56,7 +56,7 @@ there is no blanket certification of every tool or failure branch.
 | Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Current real-NX negative cases await rerun |
 | Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
 | Bridge/process restart | Existing lifecycle | Automated bridge tests | Current independent-process restart test awaits rerun |
-| Interactive GUI scheduling | C# add-in in `nx_gui_bridge/`, loaded on demand | Protocol checks against the live add-in | NX2206 acceptance only (2026-09-18); see [GUI bridge](docs/gui-bridge.md) |
+| Interactive GUI scheduling | C# add-in in `nx_gui_bridge/`, loaded on demand | Protocol checks against the live add-in | NX2206 acceptance only (2026-09-18, re-validated 2026-09-20); see [GUI bridge](docs/gui-bridge.md) |
 | Legacy tools / arbitrary Journals | Disabled by default | Mock-NX coverage only | Unverified; explicit opt-in is not certification |
 | STEP-to-USD sample validation | Separate example, not MCP | Unit tests and opt-in OpenUSD checker fixtures | Fresh NX STEP-to-USD chain remains pending |
 
@@ -156,7 +156,8 @@ NX2206 validation record.
 
 `NX_MCP_STATE_DIR` moves `bridge.json` out of `%LOCALAPPDATA%\nx-mcp`. Set it
 on both sides when an MSIX-packaged MCP client and NX see different AppData
-folders.
+folders. It must be an absolute path, so that the NX bridge and the sidecar
+name the same file.
 
 ## Security model
 
