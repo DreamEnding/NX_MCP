@@ -124,9 +124,25 @@ over 570 s, one every 250 ms.
   continuous stretch was 4.5 s, and 28 probes timed out at 2 s during
   commands.
 
+### Re-validation after the review changes (2026-09-20)
+
+The add-in was rebuilt with the in-box `csc.exe` and loaded from the `startup`
+folder of a test NX:
+
+| Check | Result |
+| --- | --- |
+| `pytest -m real_nx tests/test_real_nx.py`, 20 iterations plus negative cases | passed in 435 s |
+| STEP output | 20 of 20 files had one solid, and `FILE_NAME` in the header stayed the requested `run-01.stp`; the sizes match the runs before the change |
+| Three exports to the same path: a fresh part, over the existing file, and after a save | each one replaced the destination with a one-solid STEP and left no temporary directory behind |
+| Descriptor whose port an unrelated service holds | logged as stale and ignored; the bridge started |
+| Descriptor served by a live bridge | start refused, naming that bridge's pid and port, and left the descriptor untouched |
+| Stop file | descriptor removed |
+
 Not yet exercised:
 
-- deferral while a user dialog is open;
+- the deferred stop. It needs a stop request that arrives while a call runs, and
+  the stop-file watcher cannot produce one: it polls between requests, so it only
+  ever stops an idle bridge. Ctrl+U, or another in-process caller, is the way in;
 - the Ctrl+U start/stop toggle;
 - running alongside other in-process NX plugins;
 - NX 2506.
