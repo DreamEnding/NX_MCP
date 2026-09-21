@@ -86,6 +86,19 @@ class BridgeDescriptor:
 
 
 def default_descriptor_path() -> Path:
+    # MSIX-packaged MCP clients see a private copy of AppData, so the NX bridge
+    # and the sidecar may need an explicit shared directory outside it.
+    state_directory = os.environ.get("NX_MCP_STATE_DIR")
+    if state_directory:
+        # A relative value would resolve against each process's own working
+        # directory, so the NX bridge and the sidecar could disagree on the path.
+        if not Path(state_directory).is_absolute():
+            raise NXToolError(
+                "NX_INVALID_ARGUMENT",
+                "NX_MCP_STATE_DIR must be an absolute path so that the NX bridge "
+                f"and the sidecar agree on it: {state_directory}",
+            )
+        return Path(state_directory) / "bridge.json"
     local_app_data = os.environ.get("LOCALAPPDATA")
     if local_app_data:
         return Path(local_app_data) / "nx-mcp" / "bridge.json"

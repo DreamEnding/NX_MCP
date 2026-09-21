@@ -56,7 +56,7 @@ there is no blanket certification of every tool or failure branch.
 | Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Current real-NX negative cases await rerun |
 | Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
 | Bridge/process restart | Existing lifecycle | Automated bridge tests | Current independent-process restart test awaits rerun |
-| Interactive GUI scheduling | Not available in bundled runner | Batch runner only | Non-blocking UI scheduler or minimal C# bridge still required |
+| Interactive GUI scheduling | C# add-in in `nx_gui_bridge/`, loaded on demand | Protocol checks against the live add-in | NX2206 acceptance only (2026-09-18, re-validated 2026-09-20); see [GUI bridge](docs/gui-bridge.md) |
 | Legacy tools / arbitrary Journals | Disabled by default | Mock-NX coverage only | Unverified; explicit opt-in is not certification |
 | STEP-to-USD sample validation | Separate example, not MCP | Unit tests and opt-in OpenUSD checker fixtures | Fresh NX STEP-to-USD chain remains pending |
 
@@ -145,6 +145,21 @@ python -m nx_mcp.real_smoke --workspace D:\NX_MCP_WORKSPACE --iterations 20 --ru
 Do not use production parts for this test. The batch bridge is not evidence of
 interactive GUI responsiveness; use a non-blocking NX UI scheduler or the
 agreed minimal C# NX-side bridge before enabling an interactive pilot.
+
+## Interactive NX GUI bridge
+
+For live modeling in an open NX window, build and load the C# add-in in
+`nx_gui_bridge/` instead of the batch journal. It serves the same bridge
+protocol, so the sidecar and MCP tools are unchanged. See
+[GUI bridge](docs/gui-bridge.md) for the build, configuration, limits and the
+NX2206 validation record.
+
+`NX_MCP_STATE_DIR` moves `bridge.json` out of `%LOCALAPPDATA%\nx-mcp`. Set it
+on both sides when an MSIX-packaged MCP client and NX see different AppData
+folders. It must be an absolute path, so that the NX bridge and the sidecar
+name the same file. `bridge.json` carries the session token, so choose a
+directory only your account can read; the C# add-in additionally writes the
+descriptor with a rule that allows your account alone.
 
 ## Security model
 

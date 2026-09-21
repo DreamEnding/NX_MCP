@@ -82,4 +82,5 @@ NX journal's main thread, which is required by NXOpen. The bundled runner pumps
 while waiting for `NX_MCP_BRIDGE_STOP_FILE`, so it is a batch feasibility path,
 not an interactive GUI integration. If a target build cannot provide a
 non-blocking GUI scheduler, the NX-side executor moves to a minimal C# plugin;
-the JSON-RPC and MCP contracts remain unchanged.
+the JSON-RPC and MCP contracts remain unchanged. NX2206 is such a build; the
+plugin lives in `nx_gui_bridge/` (see [GUI bridge](gui-bridge.md)).
