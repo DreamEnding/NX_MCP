@@ -127,3 +127,12 @@ def test_output_must_be_a_nonempty_file(tmp_path, mode):
         path.mkdir()
     with pytest.raises(RuntimeError, match="not created or is empty"):
         _verify_file(path)
+
+
+def test_step_output_must_contain_solid_geometry(tmp_path):
+    from nx_mcp.real_smoke import _verify_step_solid
+
+    path = tmp_path / "output.stp"
+    path.write_text("ISO-10303-21;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="no solid geometry"):
+        _verify_step_solid(path)

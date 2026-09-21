@@ -7,8 +7,10 @@ import math
 import os
 import secrets
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
+from shutil import rmtree
 from typing import Any
 
 from nx_mcp.bridge import (
@@ -335,19 +337,56 @@ class NXOpenExecutor:
         return {"message": f"Closed part: {part_name}"}
 
     def _export_step(self, path: str) -> dict[str, Any]:
-        self._work_part()
+        part = self._work_part()
         destination = self.workspace.ensure_inside(path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        builder = self.session.DexManager.CreateStepCreator()
+        # Translate into a temporary directory beside the destination and move the result
+        # into place only once the translator wrote a non-empty file, so an earlier export
+        # can never make a failed translation look successful. The file keeps its name
+        # there: NX records that name in the STEP header.
+        staging_directory = destination.parent / f".nx-mcp-{secrets.token_hex(4)}"
+        staging = staging_directory / destination.name
+        log = destination.with_suffix(".log")
+        staging_directory.mkdir()
         try:
-            builder.OutputFile = str(destination)
-            builder.Commit()
+            self._translate_step(part, staging)
+            if not staging.is_file() or staging.stat().st_size == 0:
+                raise NXToolError(
+                    "NX_OPERATION_FAILED",
+                    f"The STEP translator wrote no output; see {log.name} in the workspace.",
+                )
+            staging.replace(destination)
         finally:
-            builder.Destroy()
+            # NX writes its translator log next to the output. Keep that log under the
+            # destination's name, and never leave a partial export behind. Cleanup must
+            # not mask the failure that brought us here.
+            with suppress(OSError):
+                staging_log = staging.with_suffix(".log")
+                if staging_log.is_file():
+                    staging_log.replace(log)
+                rmtree(staging_directory, ignore_errors=True)
         return {
             "path": str(destination),
             "message": f"Exported STEP: {destination.name}",
         }
+
+    def _translate_step(self, part: Any, destination: Path) -> None:
+        builder = self.session.DexManager.CreateStepCreator()
+        try:
+            # NXOpen does not load the interactive STEP defaults (ugstep214.def): the
+            # layer mask starts empty and every object type is off, so the file would
+            # contain no geometry. A saved, unmodified part is translated from
+            # InputFile, which also starts empty; a modified part still exports its
+            # in-session model. Hold makes Commit wait for the translator.
+            builder.InputFile = part.FullPath
+            builder.LayerMask = "1-256"
+            builder.ObjectTypes.Solids = True
+            builder.ObjectTypes.Surfaces = True
+            builder.ProcessHoldFlag = True
+            builder.OutputFile = str(destination)
+            builder.Commit()
+        finally:
+            builder.Destroy()
 
     def _create_sketch(self, plane: str = "XY", name: str | None = None) -> dict[str, Any]:
         normals = {"XY": (0.0, 0.0, 1.0), "XZ": (0.0, 1.0, 0.0), "YZ": (1.0, 0.0, 0.0)}
