@@ -17,7 +17,9 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -2441,7 +2443,13 @@ namespace NxMcp.GuiBridge
             {
                 return;
             }
-            if (!IsForeignPort((int)(long)port))
+            long candidate = (long)port;
+            if (candidate < 1 || candidate > 65535)
+            {
+                Log("ignoring a stale descriptor: port " + candidate + " is out of range");
+                return;
+            }
+            if (!IsForeignPort((int)candidate))
             {
                 object pid;
                 existing.TryGetValue("pid", out pid);
@@ -2536,7 +2544,7 @@ namespace NxMcp.GuiBridge
 
         private static void WriteDescriptor(int port, string secret, string nxVersion)
         {
-            Directory.CreateDirectory(stateDirectory);
+            CreateProtectedDirectory(stateDirectory);
             var descriptor = new Dictionary<string, object>();
             descriptor["port"] = port;
             descriptor["token"] = secret;
@@ -2545,7 +2553,21 @@ namespace NxMcp.GuiBridge
             descriptor["protocol_version"] = Protocol.Version;
             descriptor["host"] = "127.0.0.1";
             string temporary = DescriptorPath + ".tmp";
-            File.WriteAllText(temporary, Json.Serialize(descriptor), new UTF8Encoding(false));
+            File.Delete(temporary);
+            byte[] payload = new UTF8Encoding(false).GetBytes(Json.Serialize(descriptor));
+            // The descriptor carries the session token, and state_dir may sit outside the user
+            // profile, so the file is created for this account alone before it holds anything.
+            using (var stream = new FileStream(
+                temporary,
+                FileMode.CreateNew,
+                FileSystemRights.WriteData | FileSystemRights.Synchronize,
+                FileShare.None,
+                4096,
+                FileOptions.None,
+                UserOnlyFileSecurity()))
+            {
+                stream.Write(payload, 0, payload.Length);
+            }
             if (File.Exists(DescriptorPath))
             {
                 File.Replace(temporary, DescriptorPath, null);
@@ -2554,6 +2576,41 @@ namespace NxMcp.GuiBridge
             {
                 File.Move(temporary, DescriptorPath);
             }
+            // Replacing a file keeps the destination's own rules, so set ours on the final path.
+            File.SetAccessControl(DescriptorPath, UserOnlyFileSecurity());
+        }
+
+        /// <summary>Allows this account alone, with inherited rules turned off.</summary>
+        private static FileSecurity UserOnlyFileSecurity()
+        {
+            var security = new FileSecurity();
+            security.SetAccessRuleProtection(true, false);
+            security.AddAccessRule(new FileSystemAccessRule(
+                WindowsIdentity.GetCurrent().User,
+                FileSystemRights.FullControl,
+                AccessControlType.Allow));
+            return security;
+        }
+
+        /// <summary>
+        /// Creates a missing state directory for this account alone. An existing directory keeps
+        /// the rules it already has, so a shared one stays the caller's choice to fix.
+        /// </summary>
+        private static void CreateProtectedDirectory(string path)
+        {
+            if (Directory.Exists(path))
+            {
+                return;
+            }
+            var security = new DirectorySecurity();
+            security.SetAccessRuleProtection(true, false);
+            security.AddAccessRule(new FileSystemAccessRule(
+                WindowsIdentity.GetCurrent().User,
+                FileSystemRights.FullControl,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+            Directory.CreateDirectory(path, security);
         }
 
         private static void RemoveDescriptor()
@@ -2605,7 +2662,7 @@ namespace NxMcp.GuiBridge
             {
                 lock (LogLock)
                 {
-                    Directory.CreateDirectory(stateDirectory);
+                    CreateProtectedDirectory(stateDirectory);
                     File.AppendAllText(
                         LogPath,
                         DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture) + " " + message +

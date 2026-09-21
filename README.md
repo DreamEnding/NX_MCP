@@ -157,7 +157,9 @@ NX2206 validation record.
 `NX_MCP_STATE_DIR` moves `bridge.json` out of `%LOCALAPPDATA%\nx-mcp`. Set it
 on both sides when an MSIX-packaged MCP client and NX see different AppData
 folders. It must be an absolute path, so that the NX bridge and the sidecar
-name the same file.
+name the same file. `bridge.json` carries the session token, so choose a
+directory only your account can read; the C# add-in additionally writes the
+descriptor with a rule that allows your account alone.
 
 ## Security model
 

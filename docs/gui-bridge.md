@@ -75,7 +75,17 @@ An optional `stop_file` config value, or `NX_MCP_BRIDGE_STOP_FILE`, stops the
 bridge when that file appears. A stale stop file is deleted at start.
 
 The bridge logs each method, its outcome and its duration to `gui-bridge.log`
-in the state directory. The token is never logged. Keep the add-in folder
+in the state directory. The token is never logged.
+
+`bridge.json` carries the session token, so anyone who can read it can call the
+bridge. The add-in therefore:
+
+- creates a missing state directory with a single rule that allows your account
+  and no inherited rules;
+- creates and replaces `bridge.json` with that same rule.
+
+A state directory that already exists keeps the rules it has, so do not point
+`state_dir` at a folder other accounts can read, and keep the add-in folder
 writable only by you: whoever can change the DLL or its config controls the
 bridge.
 
@@ -158,6 +168,8 @@ also waits 300 ms before sending the response, to widen the window:
 | The same, with the widened window, on the code before this fix | The client saw `NX_PROTOCOL_ERROR` and `execution_state: unknown` while NX had already written the STEP: the race this fix removes |
 | The same widened window with the fix | The response arrived in full, and teardown followed it |
 | `python -m nx_mcp.real_smoke --iterations 2` on the shipped build, then the stop file | passed; the descriptor was removed |
+| A state directory the add-in had to create | `icacls` reported one rule, for the current account, with nothing inherited; `bridge.json` the same, and the log inherits it |
+| Descriptor with a port outside 1..65535 | logged as stale and ignored; the bridge started and rewrote it |
 
 Not yet exercised:
 
