@@ -2202,64 +2202,76 @@ namespace NxMcp.GuiBridge
             }
             var workspace = new Workspace(root);
             Directory.CreateDirectory(workspace.Root);
-            RefuseLiveDescriptor();
-            string stopFile = Setting(config, "NX_MCP_BRIDGE_STOP_FILE", "stop_file");
-            if (!string.IsNullOrEmpty(stopFile) && File.Exists(stopFile))
+            CreateProtectedDirectory(stateDirectory);
+            using (FileStream startupLock = AcquireDescriptorStartupLock())
             {
-                File.Delete(stopFile);
-            }
+                RefuseLiveDescriptor();
+                string stopFile = Setting(config, "NX_MCP_BRIDGE_STOP_FILE", "stop_file");
+                if (!string.IsNullOrEmpty(stopFile) && File.Exists(stopFile))
+                {
+                    File.Delete(stopFile);
+                }
 
-            Session session = Session.GetSession();
-            string nxVersion = null;
-            try
-            {
-                nxVersion = session.GetEnvironmentVariableValue("UGII_VERSION");
-            }
-            catch (Exception)
-            {
-            }
-            if (string.IsNullOrEmpty(nxVersion))
-            {
-                nxVersion = "NX build unknown";
-            }
+                Session session = Session.GetSession();
+                string nxVersion = null;
+                try
+                {
+                    nxVersion = session.GetEnvironmentVariableValue("UGII_VERSION");
+                }
+                catch (Exception)
+                {
+                }
+                if (string.IsNullOrEmpty(nxVersion))
+                {
+                    nxVersion = "NX build unknown";
+                }
 
-            var control = new Control();
-            IntPtr handle = control.Handle;  // bind the marshaling window to this (UI) thread
-            var executor = new Executor(session, nxVersion, workspace);
-            var callDispatcher = new MainThreadDispatcher(control, executor.Execute, CompletePendingStop);
-            string secret = NewToken();
-            var listener = new BridgeServer(
-                callDispatcher,
-                secret,
-                string.IsNullOrEmpty(stopFile) ? null : stopFile,
-                delegate { control.BeginInvoke(new MethodInvoker(delegate { Stop("stop file"); })); });
-            listener.Start();
-            try
-            {
-                WriteDescriptor(listener.Port, secret, nxVersion);
-            }
-            catch (Exception)
-            {
-                callDispatcher.Stop();
-                listener.Stop();
-                control.Dispose();
-                throw;
-            }
-            marshal = control;
-            dispatcher = callDispatcher;
-            server = listener;
-            token = secret;
-            workspaceRoot = workspace.Root;
-            if (!exitHooked)
-            {
-                exitHooked = true;
-                AppDomain.CurrentDomain.ProcessExit += delegate { RemoveDescriptor(); };
-                AppDomain.CurrentDomain.DomainUnload += delegate { RemoveDescriptor(); };
+                var control = new Control();
+                MainThreadDispatcher callDispatcher = null;
+                BridgeServer listener = null;
+                IntPtr handle;
+                string secret;
+                try
+                {
+                    handle = control.Handle;  // bind the marshaling window to this (UI) thread
+                    var executor = new Executor(session, nxVersion, workspace);
+                    callDispatcher = new MainThreadDispatcher(control, executor.Execute, CompletePendingStop);
+                    secret = NewToken();
+                    listener = new BridgeServer(
+                        callDispatcher,
+                        secret,
+                        string.IsNullOrEmpty(stopFile) ? null : stopFile,
+                        delegate { control.BeginInvoke(new MethodInvoker(delegate { Stop("stop file"); })); });
+                    listener.Start();
+                    WriteDescriptor(listener.Port, secret, nxVersion);
+                }
+                catch (Exception)
+                {
+                    // Attempt every cleanup without hiding the startup failure.
+                    try { if (callDispatcher != null) { callDispatcher.Stop(); } }
+                    catch (Exception) { }
+                    try { if (listener != null) { listener.Stop(); } }
+                    catch (Exception) { }
+                    try { control.Dispose(); }
+                    catch (Exception) { }
+                    throw;
+                }
+                marshal = control;
+                dispatcher = callDispatcher;
+                server = listener;
+                token = secret;
+                workspaceRoot = workspace.Root;
+                if (!exitHooked)
+                {
+                    exitHooked = true;
+                    AppDomain.CurrentDomain.ProcessExit += delegate { RemoveDescriptor(); };
+                    AppDomain.CurrentDomain.DomainUnload += delegate { RemoveDescriptor(); };
+                }
+                Log("started on 127.0.0.1:" + listener.Port + " (NX " + nxVersion + ", pid " +
+                    Process.GetCurrentProcess().Id + ", handle " + handle + "), workspace " + workspace.Root +
+                    ", descriptor " + DescriptorPath);
             }
             SetStatus(ReadyStatus);
-            Log("started on 127.0.0.1:" + listener.Port + " (NX " + nxVersion + ", pid " +
-                Process.GetCurrentProcess().Id + ", handle " + handle + "), workspace " + workspace.Root +
-                ", descriptor " + DescriptorPath);
         }
 
         public static void Stop(string reason)
@@ -2422,6 +2434,39 @@ namespace NxMcp.GuiBridge
             return builder.ToString();
         }
 
+        /// <summary>Serializes descriptor validation, listener startup and publication across NX processes.</summary>
+        private static FileStream AcquireDescriptorStartupLock()
+        {
+            string path = Path.Combine(stateDirectory, "bridge.lock");
+            var elapsed = Stopwatch.StartNew();
+            while (true)
+            {
+                try
+                {
+                    // Never delete the lock file: its open handle, not its existence, owns the lock.
+                    return new FileStream(
+                        path, FileMode.OpenOrCreate,
+                        FileSystemRights.ReadData | FileSystemRights.WriteData | FileSystemRights.Synchronize,
+                        FileShare.None, 4096, FileOptions.None, UserOnlyFileSecurity());
+                }
+                catch (IOException error)
+                {
+                    int code = System.Runtime.InteropServices.Marshal.GetHRForException(error) & 0xffff;
+                    if (code != 32 && code != 33)  // sharing/lock violation only
+                    {
+                        throw;
+                    }
+                    if (elapsed.ElapsedMilliseconds >= 5000)
+                    {
+                        throw new TimeoutException(
+                            "Timed out waiting for NX MCP bridge startup lock; another NX process may be starting the bridge.",
+                            error);
+                    }
+                    Thread.Sleep(50);
+                }
+            }
+        }
+
         /// <summary>Never replace a descriptor whose bridge still answers on its port.</summary>
         private static void RefuseLiveDescriptor()
         {
@@ -2552,32 +2597,41 @@ namespace NxMcp.GuiBridge
             descriptor["nx_version"] = nxVersion;
             descriptor["protocol_version"] = Protocol.Version;
             descriptor["host"] = "127.0.0.1";
-            string temporary = DescriptorPath + ".tmp";
-            File.Delete(temporary);
-            byte[] payload = new UTF8Encoding(false).GetBytes(Json.Serialize(descriptor));
-            // The descriptor carries the session token, and state_dir may sit outside the user
-            // profile, so the file is created for this account alone before it holds anything.
-            using (var stream = new FileStream(
-                temporary,
-                FileMode.CreateNew,
-                FileSystemRights.WriteData | FileSystemRights.Synchronize,
-                FileShare.None,
-                4096,
-                FileOptions.None,
-                UserOnlyFileSecurity()))
+            string temporary = DescriptorPath + ".tmp." + Process.GetCurrentProcess().Id + "." +
+                Guid.NewGuid().ToString("N");
+            try
             {
-                stream.Write(payload, 0, payload.Length);
+                byte[] payload = new UTF8Encoding(false).GetBytes(Json.Serialize(descriptor));
+                // The token is protected before the temporary file contains any data.
+                using (var stream = new FileStream(
+                    temporary,
+                    FileMode.CreateNew,
+                    FileSystemRights.WriteData | FileSystemRights.Synchronize,
+                    FileShare.None,
+                    4096,
+                    FileOptions.None,
+                    UserOnlyFileSecurity()))
+                {
+                    stream.Write(payload, 0, payload.Length);
+                }
+                if (File.Exists(DescriptorPath))
+                {
+                    // Replace preserves destination ACLs. Protect the stale destination first,
+                    // so an ACL failure cannot occur after publishing this listener's descriptor.
+                    File.SetAccessControl(DescriptorPath, UserOnlyFileSecurity());
+                    File.Replace(temporary, DescriptorPath, null);
+                }
+                else
+                {
+                    File.Move(temporary, DescriptorPath);
+                }
             }
-            if (File.Exists(DescriptorPath))
+            finally
             {
-                File.Replace(temporary, DescriptorPath, null);
+                // Only our unique temporary is eligible; cleanup must not hide the original error.
+                try { File.Delete(temporary); }
+                catch (Exception) { }
             }
-            else
-            {
-                File.Move(temporary, DescriptorPath);
-            }
-            // Replacing a file keeps the destination's own rules, so set ours on the final path.
-            File.SetAccessControl(DescriptorPath, UserOnlyFileSecurity());
         }
 
         /// <summary>Allows this account alone, with inherited rules turned off.</summary>
@@ -2617,16 +2671,24 @@ namespace NxMcp.GuiBridge
         {
             try
             {
-                string secret = token;
-                if (secret == null || !File.Exists(DescriptorPath))
+                if (token == null)
                 {
                     return;
                 }
-                var current = Json.Parse(File.ReadAllText(DescriptorPath, Encoding.UTF8)) as Dictionary<string, object>;
-                object stored;
-                if (current != null && current.TryGetValue("token", out stored) && secret.Equals(stored))
+                // Serialize the token check and delete with replacement by a new startup.
+                using (FileStream ownershipLock = AcquireDescriptorStartupLock())
                 {
-                    File.Delete(DescriptorPath);
+                    string secret = token;
+                    if (secret == null || !File.Exists(DescriptorPath))
+                    {
+                        return;
+                    }
+                    var current = Json.Parse(File.ReadAllText(DescriptorPath, Encoding.UTF8)) as Dictionary<string, object>;
+                    object stored;
+                    if (current != null && current.TryGetValue("token", out stored) && secret.Equals(stored))
+                    {
+                        File.Delete(DescriptorPath);
+                    }
                 }
             }
             catch (Exception)
