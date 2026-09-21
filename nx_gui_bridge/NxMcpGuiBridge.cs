@@ -1798,6 +1798,26 @@ namespace NxMcp.GuiBridge
             }
         }
 
+        /// <summary>
+        /// Stops taking new work but leaves the active connection alone, so a response the socket
+        /// thread still holds goes out in full. Blocks until that request is finished.
+        /// </summary>
+        public void StopAfterResponse()
+        {
+            stopping = true;
+            try
+            {
+                listener.Stop();
+            }
+            catch (Exception)
+            {
+            }
+            if (thread != null && thread != Thread.CurrentThread)
+            {
+                thread.Join(TimeSpan.FromSeconds(10));
+            }
+        }
+
         private void Serve()
         {
             Stopwatch stopCheck = Stopwatch.StartNew();
@@ -1943,7 +1963,19 @@ namespace NxMcp.GuiBridge
             try
             {
                 client.SendTimeout = (int)Protocol.ReadTimeout.TotalMilliseconds;
-                client.Send(encoded);
+                // Socket.Send may take only part of the buffer. A truncated response would leave
+                // the sidecar unable to tell whether the command ran, so send all of it.
+                int sent = 0;
+                while (sent < encoded.Length)
+                {
+                    int written = client.Send(
+                        encoded, sent, encoded.Length - sent, SocketFlags.None);
+                    if (written <= 0)
+                    {
+                        break;
+                    }
+                    sent += written;
+                }
             }
             catch (Exception)
             {
@@ -2081,6 +2113,7 @@ namespace NxMcp.GuiBridge
         private static string token;
         private static bool exitHooked;
         private static string pendingStopReason;
+        private static volatile bool stopInProgress;
 
         public static bool Running
         {
@@ -2139,6 +2172,7 @@ namespace NxMcp.GuiBridge
                 return;
             }
             pendingStopReason = null;
+            stopInProgress = false;
             Dictionary<string, object> config = LoadConfig();
             string root = Setting(config, "NX_MCP_WORKSPACE", "workspace");
             if (string.IsNullOrEmpty(root))
@@ -2228,7 +2262,7 @@ namespace NxMcp.GuiBridge
 
         public static void Stop(string reason)
         {
-            if (!Running)
+            if (!Running || stopInProgress)
             {
                 return;
             }
@@ -2245,29 +2279,60 @@ namespace NxMcp.GuiBridge
                 }
                 return;
             }
-            pendingStopReason = null;
             dispatcher.Stop();
+            // No request is in flight here, so the active connection can go straight away.
             server.Stop();
+            FinishStop(reason);
+        }
+
+        /// <summary>Runs on the UI thread once a call returned: completes a deferred stop.</summary>
+        private static void CompletePendingStop()
+        {
+            if (pendingStopReason == null || stopInProgress || !Running || dispatcher.Executing)
+            {
+                return;
+            }
+            stopInProgress = true;
+            string reason = pendingStopReason;
+            Control control = marshal;
+            BridgeServer listener = server;
+            // The socket thread still has to encode and send this call's response, and cutting the
+            // connection here would leave the sidecar unsure whether the command ran. Wait for
+            // that off the UI thread, then finish teardown back on it: the marshaling control has
+            // to be disposed by the thread that owns it.
+            var closer = new Thread(new ThreadStart(delegate
+            {
+                listener.StopAfterResponse();
+                try
+                {
+                    control.BeginInvoke(new MethodInvoker(delegate { FinishStop(reason); }));
+                }
+                catch (Exception)
+                {
+                }
+            }));
+            closer.IsBackground = true;
+            closer.Name = "nx-mcp-bridge-stop";
+            closer.Start();
+        }
+
+        /// <summary>Releases the bridge on the UI thread. Safe to reach only once per start.</summary>
+        private static void FinishStop(string reason)
+        {
+            if (marshal == null)
+            {
+                return;
+            }
             RemoveDescriptor();
             marshal.Dispose();
             marshal = null;
             dispatcher = null;
             server = null;
             token = null;
+            pendingStopReason = null;
+            stopInProgress = false;
             SetStatus("NX MCP bridge stopped");
             Log("stopped (" + reason + ")");
-        }
-
-        /// <summary>Runs on the UI thread once a call returned: completes a deferred stop.</summary>
-        private static void CompletePendingStop()
-        {
-            if (pendingStopReason == null || !Running || dispatcher.Executing)
-            {
-                return;
-            }
-            // Post the shutdown instead of running it here: this handler is itself a callback of
-            // the marshaling control that Stop disposes.
-            marshal.BeginInvoke(new MethodInvoker(delegate { Stop(pendingStopReason); }));
         }
 
         /// <summary>

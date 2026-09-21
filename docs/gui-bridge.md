@@ -97,8 +97,9 @@ app.
 - A running NXOpen call occupies the UI thread until it returns, like an
   interactive command. NX is free between calls.
 - Stopping cancels queued calls. It does not abort a running call: a stop asked
-  for during a call refuses new work at once and shuts down when that call
-  returns.
+  for during a call refuses new work at once, then waits for that call's
+  response to go out before it closes the connection and tears the bridge down.
+  A client therefore never loses the answer to a command NX has already run.
 - Only one bridge may own the descriptor. Start probes the descriptor's port
   with a deliberately invalid token, which a bridge rejects from its socket
   thread without waiting for NX, and refuses to start unless the answer proves
@@ -144,11 +145,23 @@ folder of a test NX:
 | Descriptor served by a live bridge busy inside a call | start refused as well: the probe gets no answer in time, and silence does not count as proof that the port is free |
 | Stop file | descriptor removed |
 
+### Second review round (2026-09-21)
+
+A stop that arrives while a call runs cannot come from the stop-file watcher,
+which polls between requests and so only ever stops an idle bridge. These runs
+used a test build that calls `Stop` from inside `nx_export_step`, and one that
+also waits 300 ms before sending the response, to widen the window:
+
+| Check | Result |
+| --- | --- |
+| Stop from inside a running export, on the shipped code | The export's success response reached the client, and the bridge stopped afterwards |
+| The same, with the widened window, on the code before this fix | The client saw `NX_PROTOCOL_ERROR` and `execution_state: unknown` while NX had already written the STEP: the race this fix removes |
+| The same widened window with the fix | The response arrived in full, and teardown followed it |
+| `python -m nx_mcp.real_smoke --iterations 2` on the shipped build, then the stop file | passed; the descriptor was removed |
+
 Not yet exercised:
 
-- the deferred stop. It needs a stop request that arrives while a call runs, and
-  the stop-file watcher cannot produce one: it polls between requests, so it only
-  ever stops an idle bridge. Ctrl+U, or another in-process caller, is the way in;
-- the Ctrl+U start/stop toggle;
+- the Ctrl+U start/stop toggle, which is the interactive way to ask for a stop
+  during a call;
 - running alongside other in-process NX plugins;
 - NX 2506.
