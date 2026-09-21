@@ -27,8 +27,8 @@ jobs:
       NX_MCP_REAL_NX_ITERATIONS: ${{ inputs.iterations }}
       NX_MCP_REAL_NX_RUN_PREFIX: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -54,6 +54,18 @@ jobs:
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "NX_MCP_WORKSPACE=$nxWorkspace"
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "NX_MCP_BRIDGE_STOP_FILE=$(Join-Path $nxWorkspace 'stop-bridge')"
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "NX_MCP_PROBE_OUTPUT=$(Join-Path $nxWorkspace 'nx-runtime-probe.json')"
+      - name: Build full C# GUI bridge against the installed NX SDK
+        shell: pwsh
+        run: |
+          if (-not $env:UGII_BASE_DIR) {
+            throw "Set UGII_BASE_DIR on the self-hosted runner to the NX installation root."
+          }
+          $output = Join-Path $env:NX_MCP_WORKSPACE 'gui-bridge-build'
+          & ./nx_gui_bridge/build.ps1 -NxRoot $env:UGII_BASE_DIR -OutputDirectory $output
+          $dll = Join-Path $output 'NxMcpGuiBridge.dll'
+          if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
+            throw "Full NX GUI bridge build did not produce NxMcpGuiBridge.dll."
+          }
       - name: Verify NX embedded runtime
         shell: pwsh
         run: |
@@ -117,11 +129,12 @@ jobs:
         run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
       - name: Upload allowlisted acceptance evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: real-nx-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.NX_MCP_WORKSPACE }}/nx-runtime-probe.json
             ${{ env.NX_MCP_WORKSPACE }}/acceptance.xml
             ${{ env.NX_MCP_WORKSPACE }}/restart.xml
+            ${{ env.NX_MCP_WORKSPACE }}/gui-bridge-build/NxMcpGuiBridge.dll
           if-no-files-found: warn

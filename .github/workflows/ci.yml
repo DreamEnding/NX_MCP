@@ -2,86 +2,47 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  pre-commit:
-    name: pre-commit hooks
+  quality:
+    name: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
       - name: Install development dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      # Default stage is pre-commit; pytest/mypy hooks are pre-push only.
       - name: Run pre-commit hooks
         run: python -m pre_commit run --all-files --show-diff-on-failure
+      - name: Run mypy
+        run: python -m mypy src/nx_mcp
 
-  test:
-    name: core tests (${{ matrix.os }} / py${{ matrix.python-version }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12"]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - name: Install package and dev dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Check declared SDK and Pydantic minimums
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
-        run: python -m pip install "mcp==2.2.0" "pydantic==2.12.0"
-      - name: Run core test suite
-        run: >-
-          python -m pytest -p no:cacheprovider
-          --ignore=tests/test_nx_session.py --ignore=tests/test_registry.py
-          --ignore=tests/test_response.py --ignore=tests/test_tools
-          -m "not legacy and not real_nx"
-
-  legacy-test:
-    name: legacy mock-NX tests
+  python:
+    name: python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
       - name: Install package and dev dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Run legacy mock-NX tests
-        run: >-
-          python -m pytest -p no:cacheprovider -m legacy
-          tests/test_nx_session.py tests/test_registry.py tests/test_response.py tests/test_tools
-
-  coverage:
-    name: branch coverage (ubuntu / py3.12)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install package and dev dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Enforce branch coverage
+      - name: Run all non-real-NX tests with branch coverage
         run: >-
           python -m pytest -p no:cacheprovider
           -m "not real_nx"
@@ -89,52 +50,51 @@ jobs:
           --cov-fail-under=78
       - name: Upload coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-ubuntu-py3.12
           path: coverage.xml
           if-no-files-found: warn
-
-  type-check:
-    name: mypy sidecar type check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-      - name: Install package and dev dependencies
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Run mypy
-        run: python -m mypy src/nx_mcp
-
-  wheel:
-    name: isolated wheel import (no NX)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
       - name: Build wheel
         run: python -m pip wheel . --no-deps -w dist
       - name: Install wheel outside checkout
         shell: pwsh
         run: |
-          python -m venv "$env:RUNNER_TEMP/wheel-env"
-          $python = "$env:RUNNER_TEMP/wheel-env/bin/python"
+          $venv = Join-Path $env:RUNNER_TEMP 'wheel-env'
+          python -m venv $venv
+          if ($LASTEXITCODE -ne 0) { throw "Wheel venv creation failed" }
+          $python = Join-Path $venv $(if ($IsWindows) { 'Scripts/python.exe' } else { 'bin/python' })
           & $python -m pip install (Get-Item dist/nx_mcp-*.whl).FullName
           if ($LASTEXITCODE -ne 0) { throw "Wheel installation failed" }
           Push-Location $env:RUNNER_TEMP
           try {
-            & $python -c "import importlib.metadata as m; import nx_mcp.server, nx_mcp.nx_bridge; assert m.version('nx-mcp') == '0.2.0.dev0'; assert {e.name for e in m.distribution('nx-mcp').entry_points} >= {'nx-mcp', 'nx-mcp-smoke'}; assert all(callable(e.load()) for e in m.distribution('nx-mcp').entry_points)"
+            & $python -I -c "import importlib.metadata as m; import nx_mcp.server, nx_mcp.nx_bridge; assert m.version('nx-mcp') == '0.2.0.dev0'; assert {e.name for e in m.distribution('nx-mcp').entry_points} >= {'nx-mcp', 'nx-mcp-smoke'}; assert all(callable(e.load()) for e in m.distribution('nx-mcp').entry_points)"
             if ($LASTEXITCODE -ne 0) { throw "Wheel imports or entry points failed" }
-            & $python -m nx_mcp.real_smoke --help
+            & $python -I -m nx_mcp.real_smoke --help
             if ($LASTEXITCODE -ne 0) { throw "Smoke CLI failed" }
           } finally { Pop-Location }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheel
           path: dist/*.whl
+
+  windows-csharp:
+    name: windows-csharp
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and dev dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Require the in-box C# compiler
+        shell: pwsh
+        run: |
+          $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+          if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+            throw "The production-source C# harness requires the in-box .NET Framework compiler."
+          }
+      - name: Compile production C# harness and test startup, protocol probes and ACLs
+        run: python -m pytest -q -p no:cacheprovider tests/test_gui_bridge_startup.py

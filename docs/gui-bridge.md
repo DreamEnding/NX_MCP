@@ -37,7 +37,9 @@ is the case [architecture](architecture.md) reserves for a minimal C# plugin.
 
 ## Build
 
-The build uses the in-box .NET Framework 4.x `csc.exe`; no SDK is needed:
+The build uses the in-box .NET Framework 4.x `csc.exe`; no .NET SDK or
+`.csproj` is needed. It references `NXOpen.dll`, `NXOpen.UF.dll`, `NXOpenUI.dll`
+and `NXOpen.Utilities.dll` from the installed NX `NXBIN/managed` directory:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File nx_gui_bridge\build.ps1 -NxRoot "C:\Program Files\Siemens\NX2206" -OutputDirectory "$env:LOCALAPPDATA\nx-mcp\gui-bridge"
@@ -46,6 +48,31 @@ powershell -ExecutionPolicy Bypass -File nx_gui_bridge\build.ps1 -NxRoot "C:\Pro
 NX loads an unsigned add-in only with an NX Open .NET author license
 (`dotnet_author`). Otherwise, sign the DLL with NX's `SignDotNet.exe`. Build
 to a local folder: NX locks the DLL while it is loaded.
+
+## CI validation layers
+
+PRs and pushes to `master` run three checks: `quality` (pre-commit and mypy),
+`python` (all non-real-NX tests, including legacy/fake-NX/integration, branch
+coverage of at least 78%, wheel build and isolated wheel imports), and
+`windows-csharp`. Coverage XML and the wheel remain available as artifacts.
+The default pre-commit stage excludes the pytest/mypy pre-push hooks.
+
+`windows-csharp` runs `tests/test_gui_bridge_startup.py` on hosted Windows.
+It requires the in-box compiler and compiles the production `BridgeHost`,
+`Json` and `Protocol` classes with the existing NX/UI test doubles. Tests
+exercise cross-process startup, descriptor ownership/probes, ACLs and cleanup.
+The harness does not compile or exercise the full executor, dispatcher or
+protocol server against NXOpen.
+
+`compatibility.yml` runs every Monday and on manual dispatch across Ubuntu,
+Windows and macOS with Python 3.10, 3.11 and 3.12. Every combination runs all
+non-real-NX tests, preserving platform skips; Ubuntu/Python 3.10 pins
+`mcp==2.2.0` and `pydantic==2.12.0` to verify the declared dependency floors.
+
+The trusted, manual [real-NX gate](real-nx-validation.md#github-actions-self-hosted-gate)
+builds the entire DLL against the installed NX assemblies and retains the
+Python batch bridge acceptance/restart tests. Compilation and hosted harness
+tests do not replace interactive GUI acceptance in a real NX session.
 
 ## Configure and run
 

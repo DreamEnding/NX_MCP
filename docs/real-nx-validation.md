@@ -128,12 +128,18 @@ and rerun this entire matrix before changing the package version from
 ## GitHub Actions self-hosted gate
 
 The repository provides `.github/workflows/real-nx.yml` for this acceptance
-gate. It is intentionally manual so ordinary pull requests are not blocked
-until a dedicated NX runner exists. The runner must have the labels
+gate. It is intentionally manual: dispatch only reviewed, trusted refs, never
+untrusted PR code on this privileged runner. The runner must have the labels
 `self-hosted`, `windows`, and `nx`, plus a runner-level `NX_RUN_JOURNAL`
 environment variable containing the absolute path to `run_journal.exe`.
+Set `UGII_BASE_DIR` to the same NX installation root, containing the four
+NXOpen assemblies under `NXBIN/managed`. PowerShell 7, the in-box .NET Framework
+compiler, and Actions Runner 2.327.1 or later (for the Node 24 actions) are required.
 
-The workflow creates a disposable workspace, runs the embedded-runtime probe,
+The workflow creates a disposable workspace and invokes `nx_gui_bridge/build.ps1`
+to compile the complete `NxMcpGuiBridge.dll` against that NX installation. It
+explicitly checks the DLL exists under the run's workspace. This is a full C#
+build, not a GUI runtime acceptance run. It then runs the embedded-runtime probe,
 starts the Python bridge, then runs `pytest -m real_nx`. It requests the bridge
 to stop even when acceptance fails. After that bridge stops, a separate
 `tests/test_real_nx_restart.py` test owns two successive NX journal processes
@@ -143,8 +149,9 @@ Do not run this test while another bridge or NX session is active. It requires
 acceptance also checks authentication, path rejection, no work part, invalid
 geometry, wrong-kind IDs, and stale IDs. No failed operation is retried.
 
-Artifacts are explicitly limited to the runtime probe and acceptance/restart
-JUnit XML reports. Never upload `bridge.json`, tokens, raw protocol traffic,
+Artifacts are explicitly limited to the runtime probe, acceptance/restart
+JUnit XML reports, and the compiled `NxMcpGuiBridge.dll` (without NX assemblies).
+Never upload `bridge.json`, tokens, raw protocol traffic,
 or the entire workspace. Keep generated CAD files local to the disposable
 workspace. Once the runner is reliable, make this
 workflow a required release/branch gate in the repository settings; the normal

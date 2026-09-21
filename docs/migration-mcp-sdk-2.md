@@ -66,7 +66,8 @@ confinement. If the public package index is unavailable through the local
 proxy, an explicit trusted mirror can be selected with `--index-url`; no pip
 configuration or proxy bypass is required.
 
-CI retains its three-OS / Python 3.10–3.12 matrix. The Ubuntu/Python 3.10 job
+The weekly/manual compatibility workflow retains the three-OS / Python
+3.10–3.12 matrix. The Ubuntu/Python 3.10 job
 also installs `mcp==2.2.0` and `pydantic==2.12.0` to check declared floors.
 Tests cover modern and initialize-based connections, tool schemas, structured
 success, errors, and workspace rejection through actual subprocess stdio,
