@@ -16,6 +16,7 @@ internal static class Harness
     internal static string Mode;
     internal static int Started, ListenerStopped, DispatcherStopped, Disposed, Port;
     internal static FileStream Blocker;
+    internal static bool AclFaultInstalled;
 
     internal static object Invoke(string name, params object[] args)
     {
@@ -106,6 +107,7 @@ internal static class Harness
             if (Blocker != null) { Blocker.Dispose(); }
             Console.WriteLine(NxMcp.GuiBridge.Json.Serialize(new Dictionary<string, object> {
                 { "error", error.Message }, { "started", Started },
+                { "error_type", error.GetType().FullName }, { "acl_fault_installed", AclFaultInstalled },
                 { "port", Port },
                 { "listener_stopped", ListenerStopped },
                 { "dispatcher_stopped", DispatcherStopped }, { "disposed", Disposed }
@@ -211,7 +213,12 @@ namespace NxMcp.GuiBridge
                 FileSecurity denied = File.GetAccessControl(path);
                 denied.AddAccessRule(new FileSystemAccessRule(
                     WindowsIdentity.GetCurrent().User, FileSystemRights.ChangePermissions, AccessControlType.Deny));
+                // Owners can have implicit WRITE_DAC even when their account is denied it.
+                // OWNER RIGHTS suppresses that grant on elevated Windows CI runners too.
+                denied.AddAccessRule(new FileSystemAccessRule(
+                    new SecurityIdentifier("S-1-3-4"), FileSystemRights.ChangePermissions, AccessControlType.Deny));
                 File.SetAccessControl(path, denied);
+                Harness.AclFaultInstalled = true;
             }
             worker = new Thread(delegate()
             {

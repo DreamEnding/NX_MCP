@@ -160,6 +160,9 @@ def test_startup_failure_cleans_resources_and_allows_restart(starters, tmp_path,
     failed = starters(mode)
     assert failed.line() == "ENTER"
     result = json.loads(failed.line())
+    if mode == "aclfail":
+        assert result["acl_fault_installed"], result
+        assert result["error_type"] == "System.UnauthorizedAccessException"
     assert result["started"] == 1
     assert result["listener_stopped"] == 1
     assert result["dispatcher_stopped"] == 1
