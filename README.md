@@ -99,7 +99,6 @@ Install the sidecar and development dependencies in a dedicated environment
 from PowerShell 7 (do not reuse an interpreter still running SDK v1):
 
 ```powershell
-$env:HTTP_PROXY = $env:HTTPS_PROXY = "http://127.0.0.1:7897"
 $env:NO_PROXY = "localhost,127.0.0.1"
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
