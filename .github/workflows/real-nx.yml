@@ -69,7 +69,7 @@ jobs:
       - name: Verify NX embedded runtime
         shell: pwsh
         run: |
-          & $env:NX_RUN_JOURNAL -nx (Join-Path $PWD 'examples\nx_runtime_probe.py')
+          & $env:NX_RUN_JOURNAL (Join-Path $PWD 'examples\nx_runtime_probe.py')
           if ($LASTEXITCODE -ne 0) {
             throw "NX runtime probe failed with exit code $LASTEXITCODE."
           }
@@ -84,7 +84,6 @@ jobs:
           $startedAt = [DateTime]::UtcNow
           $bridgeScript = Join-Path $PWD 'examples\start_nx_bridge.py'
           $bridgeProcess = Start-Process -FilePath $env:NX_RUN_JOURNAL -ArgumentList @(
-            '-nx',
             "`"$bridgeScript`""
           ) -PassThru -WindowStyle Hidden
           Add-Content -LiteralPath $env:GITHUB_ENV -Value "NX_MCP_BRIDGE_PID=$($bridgeProcess.Id)"
