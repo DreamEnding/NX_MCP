@@ -4,25 +4,70 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import errno
 import hmac
 import json
+import logging
 import os
 import secrets
 import socket
 import socketserver
-from collections.abc import Callable
+import sys
+from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Lock, Thread, get_ident
-from time import monotonic
+from time import monotonic, sleep
 from typing import Any
 from uuid import uuid4
 
 from nx_mcp.runtime import NXToolError, ObjectKind, ObjectRef
 
+logger = logging.getLogger("nx_mcp")
+
 BRIDGE_PROTOCOL_VERSION = 1
 _MAX_MESSAGE_BYTES = 1024 * 1024
+
+# The C# GUI bridge serializes startup on this file in the state directory; the
+# Python bridge takes the same one so that neither can publish over the other.
+BRIDGE_LOCK_NAME = "bridge.lock"
+_STARTUP_LOCK_TIMEOUT = 5.0
+_STARTUP_LOCK_POLL = 0.05
+# A bridge rejects this token on its socket thread, before anything reaches NX.
+_PROBE_TOKEN = "nx-mcp-descriptor-probe"
+_PROBE_CONNECT_TIMEOUT = 0.3
+_PROBE_WRITE_TIMEOUT = 1.0
+_PROBE_READ_TIMEOUT = 2.0
+_PROBE_MAX_ANSWER_BYTES = 64 * 1024
+_LOCK_CONTENTION_ERRNOS = frozenset(
+    code
+    for code in (
+        getattr(errno, name, None)
+        for name in ("EACCES", "EAGAIN", "EWOULDBLOCK", "EDEADLK", "EDEADLOCK")
+    )
+    if code is not None
+)
+
+if sys.platform == "win32":
+    import msvcrt
+
+    def _lock_exclusive(handle: int) -> None:
+        os.lseek(handle, 0, os.SEEK_SET)
+        msvcrt.locking(handle, msvcrt.LK_NBLCK, 1)
+
+    def _release_lock(handle: int) -> None:
+        os.lseek(handle, 0, os.SEEK_SET)
+        msvcrt.locking(handle, msvcrt.LK_UNLCK, 1)
+
+else:
+    import fcntl
+
+    def _lock_exclusive(handle: int) -> None:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def _release_lock(handle: int) -> None:
+        fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 @dataclass
@@ -78,11 +123,20 @@ class BridgeDescriptor:
     def write(self, path: str | Path) -> None:
         destination = Path(path)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_suffix(destination.suffix + ".tmp")
-        temporary.write_text(json.dumps(asdict(self), indent=2), encoding="utf-8")
-        with contextlib.suppress(OSError):
-            temporary.chmod(0o600)
-        temporary.replace(destination)
+        # A shared temporary name lets two starting bridges overwrite each other's
+        # half-written descriptor, so every writer gets one of its own.
+        temporary = destination.parent / f"{destination.name}.tmp.{os.getpid()}.{uuid4().hex}"
+        try:
+            # The token is protected before the temporary file contains any data.
+            handle = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(handle, "w", encoding="utf-8") as stream:
+                stream.write(json.dumps(asdict(self), indent=2))
+            os.replace(temporary, destination)
+        finally:
+            # Only this writer's unique temporary is eligible, and removing it must
+            # not hide a publication failure.
+            with contextlib.suppress(OSError):
+                temporary.unlink(missing_ok=True)
 
 
 def default_descriptor_path() -> Path:
@@ -106,6 +160,131 @@ def default_descriptor_path() -> Path:
     if xdg_state_home:
         return Path(xdg_state_home) / "nx-mcp" / "bridge.json"
     return Path.home() / ".local" / "state" / "nx-mcp" / "bridge.json"
+
+
+def descriptor_lock_path(descriptor_path: str | Path) -> Path:
+    """The startup lock beside a descriptor, so both bridges take the same file."""
+    return Path(descriptor_path).parent / BRIDGE_LOCK_NAME
+
+
+@contextlib.contextmanager
+def descriptor_startup_lock(
+    descriptor_path: str | Path, *, timeout: float = _STARTUP_LOCK_TIMEOUT
+) -> Iterator[None]:
+    """Serializes descriptor validation, listener startup and publication across NX processes.
+
+    The C# bridge holds an exclusive handle on ``bridge.lock``. ``msvcrt.locking`` and
+    ``fcntl.flock`` give the same two guarantees here: only one holder at a time, and
+    the lock is released by the operating system when its process dies.
+    """
+    path = descriptor_lock_path(descriptor_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Never delete the lock file: the lock on its open handle, not its existence,
+    # is what owns the startup. A failure to open it is not contention, so it is
+    # reported as itself rather than retried until the timeout.
+    handle = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        deadline = monotonic() + timeout
+        while True:
+            try:
+                _lock_exclusive(handle)
+                break
+            except OSError as error:
+                if error.errno not in _LOCK_CONTENTION_ERRNOS:
+                    raise
+                if monotonic() >= deadline:
+                    raise TimeoutError(
+                        "Timed out waiting for NX MCP bridge startup lock; "
+                        "another NX process may be starting the bridge."
+                    ) from error
+                sleep(_STARTUP_LOCK_POLL)
+        try:
+            yield
+        finally:
+            with contextlib.suppress(OSError):
+                _release_lock(handle)
+    finally:
+        os.close(handle)
+
+
+def _is_foreign_port(port: int) -> bool:
+    """True only when the descriptor's port provably belongs to something else.
+
+    Nothing listening, a connection that closes, and an answer that is not a bridge
+    response are each proof. A port that accepts and then stays silent is not: the
+    bridge behind it may be busy inside NX, and overwriting its descriptor would
+    strand its sidecar.
+    """
+    request = (
+        json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": _PROBE_TOKEN,
+                "protocol_version": BRIDGE_PROTOCOL_VERSION,
+                # Deliberately invalid: both bridges compare the token on the socket
+                # thread, so even one waiting on NX answers NX_AUTH_FAILED at once.
+                "token": _PROBE_TOKEN,
+                "method": "nx_status",
+                "params": {},
+            }
+        ).encode("utf-8")
+        + b"\n"
+    )
+    try:
+        with socket.create_connection(("127.0.0.1", port), _PROBE_CONNECT_TIMEOUT) as probe:
+            answer = bytearray()
+            wrote = False
+            try:
+                probe.settimeout(_PROBE_WRITE_TIMEOUT)
+                probe.sendall(request)
+                wrote = True
+                probe.settimeout(_PROBE_READ_TIMEOUT)
+                while len(answer) < _PROBE_MAX_ANSWER_BYTES and b"\n" not in answer:
+                    chunk = probe.recv(4096)
+                    if not chunk:
+                        break
+                    answer.extend(chunk)
+            except OSError:
+                # A peer that was already gone is not a bridge. Silence after the
+                # request went out proves nothing, because a busy bridge answers late.
+                return not wrote
+            if not answer:
+                return True
+            try:
+                reply = json.loads(answer.decode("utf-8", "replace").strip())
+            except ValueError:
+                return True
+            return not (
+                isinstance(reply, dict)
+                and "ok" in reply
+                and ("error" in reply or "result" in reply)
+            )
+    except OSError:
+        return True
+
+
+def refuse_live_descriptor(descriptor_path: str | Path) -> None:
+    """Never replaces a descriptor whose bridge still answers on its port."""
+    path = Path(descriptor_path)
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not isinstance(existing, dict):
+        return
+    port = existing.get("port")
+    if type(port) is not int:
+        return
+    if not 1 <= port <= 65535:
+        logger.info("ignoring a stale descriptor: port %s is out of range", port)
+        return
+    if not _is_foreign_port(port):
+        raise NXToolError(
+            "NX_BRIDGE_ALREADY_RUNNING",
+            f"Another NX MCP bridge is already running (pid {existing.get('pid')}, "
+            f"port {port}). Delete {path} if that bridge is gone.",
+        )
+    logger.info("ignoring a stale descriptor: port %s does not answer as an NX MCP bridge", port)
 
 
 def _reject_constant(value: str) -> None:

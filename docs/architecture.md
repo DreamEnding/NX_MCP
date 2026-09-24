@@ -26,6 +26,18 @@ the protocol version, host, port, random token, NX PID, and exact NX version.
 The sidecar reloads the descriptor for every call, so restarting NX does not
 leave a permanently disconnected singleton.
 
+Both bridges publish that descriptor under the same rules, so two NX processes
+sharing a state directory cannot both claim it. A starting bridge holds an
+exclusive lock on `bridge.lock` beside the descriptor for the whole
+check-then-publish sequence, and for the token check its own shutdown makes
+before deleting. It refuses to start when the descriptor's port still answers
+as a bridge: the probe carries a deliberately invalid token, which either
+bridge rejects on its socket thread without waiting for NX. Nothing listening,
+a closed connection, or a reply that is not a bridge response proves the port
+belongs to something else; silence does not, because a bridge busy with a call
+answers late. Each writer publishes through a temporary of its own, named after
+its process, and removes only that one.
+
 Requests are newline-delimited JSON-RPC objects containing `protocol_version`,
 `id`, `token`, `method`, and `params`. Responses echo the ID and contain either
 `result` or a stable error with `code`, `message`, optional `suggestion`, and
