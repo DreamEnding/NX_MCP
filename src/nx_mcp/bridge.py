@@ -179,25 +179,10 @@ def descriptor_startup_lock(
     """
     path = descriptor_lock_path(descriptor_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Never delete the lock file: the lock on its open handle, not its existence,
-    # is what owns the startup. A failure to open it is not contention, so it is
-    # reported as itself rather than retried until the timeout.
-    handle = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    deadline = monotonic() + timeout
+    handle = _open_lock_file(path, deadline)
     try:
-        deadline = monotonic() + timeout
-        while True:
-            try:
-                _lock_exclusive(handle)
-                break
-            except OSError as error:
-                if error.errno not in _LOCK_CONTENTION_ERRNOS:
-                    raise
-                if monotonic() >= deadline:
-                    raise TimeoutError(
-                        "Timed out waiting for NX MCP bridge startup lock; "
-                        "another NX process may be starting the bridge."
-                    ) from error
-                sleep(_STARTUP_LOCK_POLL)
+        _take_lock(handle, deadline)
         try:
             yield
         finally:
@@ -205,6 +190,47 @@ def descriptor_startup_lock(
                 _release_lock(handle)
     finally:
         os.close(handle)
+
+
+def _wait_for_lock(deadline: float, error: OSError) -> None:
+    if monotonic() >= deadline:
+        raise TimeoutError(
+            "Timed out waiting for NX MCP bridge startup lock; "
+            "another NX process may be starting the bridge."
+        ) from error
+    sleep(_STARTUP_LOCK_POLL)
+
+
+def _open_lock_file(path: Path, deadline: float) -> int:
+    """Opens bridge.lock, waiting out a C# bridge that is already holding it.
+
+    The C# add-in opens the same file with ``FileShare.None``, which denies this
+    process the open itself rather than only the lock, and Windows reports that as a
+    plain ``PermissionError``. Waiting it out is what lets the two bridges serialize
+    against each other. A directory in the lock's place raises the same error but will
+    never clear, so it is reported as itself, as is any refusal on a platform that has
+    no sharing violations.
+    """
+    while True:
+        try:
+            # Never delete the lock file: the lock on its open handle, not the file's
+            # existence, is what owns the startup.
+            return os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+        except PermissionError as error:
+            if sys.platform != "win32" or path.is_dir():
+                raise
+            _wait_for_lock(deadline, error)
+
+
+def _take_lock(handle: int, deadline: float) -> None:
+    while True:
+        try:
+            _lock_exclusive(handle)
+            return
+        except OSError as error:
+            if error.errno not in _LOCK_CONTENTION_ERRNOS:
+                raise
+            _wait_for_lock(deadline, error)
 
 
 def _is_foreign_port(port: int) -> bool:

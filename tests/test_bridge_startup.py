@@ -215,6 +215,72 @@ def test_lock_that_cannot_be_opened_is_reported_as_itself(tmp_path):
     assert time.monotonic() - started < 1
 
 
+class ShareNoneHandle:
+    """A handle opened the way the C# add-in opens bridge.lock: FileShare.None."""
+
+    def __init__(self, path: Path) -> None:
+        import ctypes
+        from ctypes import wintypes
+
+        self.kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        self.kernel32.CreateFileW.restype = wintypes.HANDLE
+        self.handle = self.kernel32.CreateFileW(
+            str(path),
+            0xC0000000,  # GENERIC_READ | GENERIC_WRITE
+            0,  # FileShare.None
+            None,
+            4,  # OPEN_ALWAYS
+            0x80,  # FILE_ATTRIBUTE_NORMAL
+            None,
+        )
+        assert self.handle != wintypes.HANDLE(-1).value, ctypes.get_last_error()
+
+    def close(self) -> None:
+        if self.handle is not None:
+            self.kernel32.CloseHandle(self.handle)
+            self.handle = None
+
+
+@pytest.fixture
+def share_none():
+    if sys.platform != "win32":
+        pytest.skip("FileShare.None is a Windows share mode")
+    held = []
+
+    def hold(path):
+        handle = ShareNoneHandle(path)
+        held.append(handle)
+        return handle
+
+    yield hold
+    for handle in held:
+        handle.close()
+
+
+def test_lock_waits_out_a_csharp_bridge_that_holds_it(share_none, tmp_path):
+    """FileShare.None denies the open itself, not just the lock; that is still contention."""
+    descriptor = tmp_path / "bridge.json"
+    share_none(descriptor_lock_path(descriptor))
+    started = time.monotonic()
+    lock = descriptor_startup_lock(descriptor)
+    with pytest.raises(TimeoutError) as caught, lock:
+        pytest.fail("the lock was granted while the C# bridge held it")
+    assert "another NX process may be starting the bridge" in str(caught.value)
+    # Waited the full budget instead of failing at once on the sharing violation.
+    assert 4.5 <= time.monotonic() - started < 15
+    assert not descriptor.exists()
+
+
+def test_lock_is_granted_once_the_csharp_bridge_releases(share_none, tmp_path):
+    descriptor = tmp_path / "bridge.json"
+    holder = share_none(descriptor_lock_path(descriptor))
+    threading.Timer(1.0, holder.close).start()
+    started = time.monotonic()
+    with descriptor_startup_lock(descriptor, timeout=10):
+        elapsed = time.monotonic() - started
+    assert 0.5 <= elapsed < 9, "should have waited for the holder, then proceeded"
+
+
 def test_lock_creates_a_missing_state_directory(tmp_path):
     descriptor = tmp_path / "state" / "bridge.json"
     with descriptor_startup_lock(descriptor):
