@@ -60,6 +60,13 @@ if sys.platform == "win32":
         os.lseek(handle, 0, os.SEEK_SET)
         msvcrt.locking(handle, msvcrt.LK_UNLCK, 1)
 
+    def _refused_open_is_contention(path: Path) -> bool:
+        # The C# bridge holds bridge.lock with FileShare.None, which refuses this
+        # process the open itself. A directory in its place is refused identically
+        # but will never clear, and neither can be told from the other by code:
+        # os.open reports both as PermissionError with no winerror.
+        return not path.is_dir()
+
 else:
     import fcntl
 
@@ -68,6 +75,11 @@ else:
 
     def _release_lock(handle: int) -> None:
         fcntl.flock(handle, fcntl.LOCK_UN)
+
+    def _refused_open_is_contention(path: Path) -> bool:
+        # flock never blocks an open, so a refusal here is always the lock being
+        # broken rather than held.
+        return False
 
 
 @dataclass
@@ -207,9 +219,7 @@ def _open_lock_file(path: Path, deadline: float) -> int:
     The C# add-in opens the same file with ``FileShare.None``, which denies this
     process the open itself rather than only the lock, and Windows reports that as a
     plain ``PermissionError``. Waiting it out is what lets the two bridges serialize
-    against each other. A directory in the lock's place raises the same error but will
-    never clear, so it is reported as itself, as is any refusal on a platform that has
-    no sharing violations.
+    against each other. A refusal that will never clear is reported as itself.
     """
     while True:
         try:
@@ -217,7 +227,7 @@ def _open_lock_file(path: Path, deadline: float) -> int:
             # existence, is what owns the startup.
             return os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
         except PermissionError as error:
-            if sys.platform != "win32" or path.is_dir():
+            if not _refused_open_is_contention(path):
                 raise
             _wait_for_lock(deadline, error)
 
