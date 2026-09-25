@@ -89,6 +89,10 @@ jobs:
           cache: pip
       - name: Install package and dev dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      # Ahead of the compiler gate: these need no .NET, and the lock they cover is
+      # the one the C# add-in holds with FileShare.None. The Ubuntu job skips them.
+      - name: Test the startup lock and descriptor probe on Windows
+        run: python -m pytest -q -p no:cacheprovider tests/test_bridge_startup.py
       - name: Require the in-box C# compiler
         shell: pwsh
         run: |
