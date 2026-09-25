@@ -159,7 +159,10 @@ on both sides when an MSIX-packaged MCP client and NX see different AppData
 folders. It must be an absolute path, so that the NX bridge and the sidecar
 name the same file. `bridge.json` carries the session token, so choose a
 directory only your account can read; the C# add-in additionally writes the
-descriptor with a rule that allows your account alone.
+descriptor with a rule that allows your account alone. Both bridges also keep a
+`bridge.lock` there and take it while they start, so two NX processes sharing a
+state directory cannot both claim the descriptor: the second one refuses to
+start while the first still answers on its port.
 
 ## Security model
 

@@ -2,6 +2,7 @@
 
 import pytest
 
+from nx_mcp.bridge import BridgeDescriptor
 from nx_mcp.nx_bridge import NXOpenExecutor
 from nx_mcp.runtime import NXToolError
 from nx_mcp.workspace import Workspace
@@ -203,6 +204,156 @@ def test_descriptor_publish_failure_cleans_up(executor, tmp_path, monkeypatch):
         module.start_bridge(tmp_path, allow_unverified_threading=True)
     assert events == ["start", "stop"]
     assert module._runtime is None
+
+
+def _fake_nx(module, executor, monkeypatch, events):
+    import sys
+    from types import SimpleNamespace
+
+    monkeypatch.setitem(
+        sys.modules,
+        "NXOpen",
+        SimpleNamespace(Session=SimpleNamespace(GetSession=lambda: executor.session)),
+    )
+    monkeypatch.setattr(module, "NXOpenExecutor", lambda *args, **kwargs: executor)
+
+    class Server:
+        port = 12345
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            events.append("start")
+
+        def stop(self):
+            events.append("stop")
+
+    monkeypatch.setattr(module, "BridgeServer", Server)
+
+
+def test_start_bridge_refuses_a_descriptor_whose_bridge_still_answers(
+    executor, tmp_path, monkeypatch
+):
+    import json
+    import socket
+    import threading
+
+    import nx_mcp.nx_bridge as module
+
+    module.stop_bridge()
+    events = []
+    _fake_nx(module, executor, monkeypatch, events)
+    answered = threading.Event()
+
+    with socket.socket() as live:
+        live.bind(("127.0.0.1", 0))
+        live.listen()
+
+        def answer():
+            try:
+                live.settimeout(10)
+                connection, _ = live.accept()
+                with connection:
+                    connection.settimeout(10)
+                    while not connection.recv(4096).endswith(b"\n"):
+                        pass
+                    connection.sendall(b'{"ok": false, "error": {"code": "NX_AUTH_FAILED"}}\n')
+                answered.set()
+            except OSError:
+                pass
+
+        responder = threading.Thread(target=answer, daemon=True)
+        responder.start()
+        descriptor = tmp_path / "bridge.json"
+        original = json.dumps({"port": live.getsockname()[1], "pid": 4242, "token": "previous"})
+        descriptor.write_text(original, encoding="utf-8")
+        with pytest.raises(NXToolError) as caught:
+            module.start_bridge(
+                tmp_path, descriptor_path=descriptor, allow_unverified_threading=True
+            )
+        assert answered.wait(10)
+        responder.join(timeout=10)
+
+    assert caught.value.code == "NX_BRIDGE_ALREADY_RUNNING"
+    # Refused before anything was bound, and the running bridge keeps its descriptor.
+    assert events == []
+    assert module._runtime is None
+    assert descriptor.read_text(encoding="utf-8") == original
+
+
+def test_start_bridge_replaces_a_descriptor_whose_port_is_dead(executor, tmp_path, monkeypatch):
+    import json
+    import socket
+
+    import nx_mcp.nx_bridge as module
+
+    module.stop_bridge()
+    events = []
+    _fake_nx(module, executor, monkeypatch, events)
+    with socket.socket() as closed:
+        closed.bind(("127.0.0.1", 0))
+        dead = closed.getsockname()[1]
+    descriptor = tmp_path / "bridge.json"
+    descriptor.write_text(json.dumps({"port": dead, "token": "previous"}), encoding="utf-8")
+    try:
+        published = module.start_bridge(
+            tmp_path, descriptor_path=descriptor, allow_unverified_threading=True
+        )
+        assert events == ["start"]
+        assert published.token != "previous"
+        assert BridgeDescriptor.read(descriptor).token == published.token
+    finally:
+        module.stop_bridge()
+    assert not descriptor.exists()
+
+
+def test_start_bridge_gives_up_when_another_process_holds_the_lock(executor, tmp_path, monkeypatch):
+    import nx_mcp.nx_bridge as module
+    from tests.test_bridge_startup import Holder
+
+    module.stop_bridge()
+    events = []
+    _fake_nx(module, executor, monkeypatch, events)
+    descriptor = tmp_path / "bridge.json"
+    holder = Holder(descriptor)
+    try:
+        with pytest.raises(TimeoutError, match="another NX process may be starting"):
+            module.start_bridge(
+                tmp_path, descriptor_path=descriptor, allow_unverified_threading=True
+            )
+    finally:
+        holder.close()
+    assert events == []
+    assert module._runtime is None
+    assert not descriptor.exists()
+
+
+def test_stopping_runtime_keeps_a_descriptor_it_cannot_check_under_the_lock(tmp_path):
+    from types import SimpleNamespace
+
+    from nx_mcp.bridge import BridgeDescriptor
+    from nx_mcp.nx_bridge import BridgeRuntime
+    from tests.test_bridge_startup import Holder
+
+    path = tmp_path / "bridge.json"
+    mine = BridgeDescriptor.create(12345, "fake", token="mine")
+    mine.write(path)
+    stopped = []
+    runtime = BridgeRuntime(
+        SimpleNamespace(stop=lambda: stopped.append("server")),
+        SimpleNamespace(stop=lambda: stopped.append("dispatcher")),
+        mine,
+        path,
+    )
+    holder = Holder(path)
+    try:
+        runtime.stop()
+    finally:
+        holder.close()
+    # The listener is down either way; an unverifiable descriptor is left to its owner.
+    assert stopped == ["dispatcher", "server"]
+    assert BridgeDescriptor.read(path).token == "mine"
 
 
 def test_stopping_runtime_preserves_replacement_descriptor(tmp_path):

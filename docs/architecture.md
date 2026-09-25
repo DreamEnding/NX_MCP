@@ -26,6 +26,29 @@ the protocol version, host, port, random token, NX PID, and exact NX version.
 The sidecar reloads the descriptor for every call, so restarting NX does not
 leave a permanently disconnected singleton.
 
+Both bridges claim that descriptor through one ownership protocol, so two NX
+processes sharing a state directory cannot both own it. A starting bridge holds
+an exclusive lock on `bridge.lock` beside the descriptor for the whole
+check-then-publish sequence, and for the token check its own shutdown makes
+before deleting. It refuses to start when the descriptor's port still answers
+as a bridge: the probe carries a deliberately invalid token, which either
+bridge rejects on its socket thread without waiting for NX. Nothing listening,
+a closed connection, or a reply that is not a bridge response proves the port
+belongs to something else; silence does not, because a bridge busy with a call
+answers late. Each writer publishes through a temporary of its own, named after
+its process, and removes only that one.
+
+The two implementations enforce that protocol with different mechanisms, and
+they are not equivalent in what they protect. The C# add-in takes the lock by
+opening `bridge.lock` with `FileShare.None` and writes the descriptor with a
+Windows ACL that allows the current user alone. The Python bridge locks a byte
+range with `msvcrt.locking` or `fcntl.flock`, because its sidecar is also
+tested on Linux and macOS, and protects the descriptor with file mode `0600`,
+which grants nothing on Windows: there the file inherits the state directory's
+rules, so that directory is what has to be chosen carefully. The two still
+serialize against each other, because each waits out the other's way of holding
+the lock.
+
 Requests are newline-delimited JSON-RPC objects containing `protocol_version`,
 `id`, `token`, `method`, and `params`. Responses echo the ID and contain either
 `result` or a stable error with `code`, `message`, optional `suggestion`, and

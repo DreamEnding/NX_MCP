@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,6 +15,9 @@ from nx_mcp.nx_bridge import pump_bridge, start_bridge, stop_bridge  # noqa: E40
 
 
 def main() -> None:
+    # NX captures a journal's stdout, so the bridge's own startup diagnostics
+    # (a stale descriptor it ignored, for one) land in the session log.
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     workspace = os.environ.get("NX_MCP_WORKSPACE")
     if not workspace:
         raise RuntimeError("Set NX_MCP_WORKSPACE before starting the NX MCP bridge")
