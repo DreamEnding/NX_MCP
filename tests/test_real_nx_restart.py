@@ -29,7 +29,7 @@ async def _running_bridge(workspace: Path):
     script = Path(__file__).resolve().parents[1] / "examples" / "start_nx_bridge.py"
     with (workspace / f"restart-{uuid4().hex}.log").open("wb") as log:
         process = subprocess.Popen(
-            [environment["NX_RUN_JOURNAL"], "-nx", str(script)],
+            [environment["NX_RUN_JOURNAL"], str(script)],
             env=environment,
             stdout=log,
             stderr=subprocess.STDOUT,

@@ -113,9 +113,10 @@ Use the absolute path to `.venv/Scripts/python.exe` as the MCP client's
 2. For the target-build feasibility test only, set
    `NX_MCP_ALLOW_UNVERIFIED_PYTHON_BRIDGE=1` in the NX environment.
 3. Set `NX_MCP_BRIDGE_STOP_FILE` to a new path inside the workspace, then run
-   `examples/start_nx_bridge.py` with `run_journal.exe -nx`. The journal pumps
-   requests on NX's main thread and writes an authenticated session descriptor
-   to `%LOCALAPPDATA%\nx-mcp\bridge.json`.
+   `examples/start_nx_bridge.py` as an NX journal. The canonical invocation
+   is `run_journal.exe <journal-file>`, with no extra switches. The journal
+   pumps requests on NX's main thread and writes an authenticated session
+   descriptor to `%LOCALAPPDATA%\nx-mcp\bridge.json`.
 4. Configure the MCP client to launch the sidecar:
 
 ```json
