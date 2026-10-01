@@ -247,6 +247,7 @@ class NXOpenExecutor:
             "connected": True,
             "nx_version": self.nx_version,
             "bridge_protocol": BRIDGE_PROTOCOL_VERSION,
+            "bridge_implementation": "python_batch",
             "active_part": self._reference(part, "part", part, "Part") if part else None,
         }
 

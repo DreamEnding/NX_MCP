@@ -1,0 +1,65 @@
+name: NX validation report
+description: Report reproducible acceptance evidence for a specific NX build and bridge.
+title: "[Validation] NX build / bridge / commit"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Follow docs/real-nx-validation.md with disposable native parts.
+        These reports are informative and do not replace the release gate.
+        Attach only evidence JSON and JUnit reports. Remove confidential details;
+        never attach tokens, descriptors, NX assemblies, licences or customer CAD.
+  - type: input
+    id: revision
+    attributes:
+      label: Exact Git commit and tag, if any
+      description: Include whether the checkout was clean or dirty and describe local changes.
+    validations:
+      required: true
+  - type: input
+    id: nx-build
+    attributes:
+      label: NX release and exact build
+      placeholder: "NX2506 / ugraf 2506.4021"
+    validations:
+      required: true
+  - type: dropdown
+    id: bridge
+    attributes:
+      label: Bridge implementation
+      options:
+        - python_batch
+        - csharp_gui
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Runtime environment
+      description: OS, embedded Python, sidecar Python, MCP SDK, native mode and launch switches.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands and results
+      description: Include iterations, negative cases, restart checks and elapsed time; mark missing checks as pending.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence JSON and JUnit reports
+      description: Link allowlisted artifacts tied to the revision above. Describe any runner or licence failures separately.
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Report confirmation
+      options:
+        - label: I actually ran the reported validation on the stated revision and environment.
+          required: true
+        - label: My report excludes credentials, NX binaries and confidential CAD.
+          required: true

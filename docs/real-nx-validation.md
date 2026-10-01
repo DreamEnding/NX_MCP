@@ -1,5 +1,14 @@
 # Real NX validation gate
 
+## M1 development validation (2026-09-30)
+
+The current development tree passed the NX2506 (`2506.4021`) Python batch
+acceptance: 20 block iterations, independent sketch-line validation, negative
+cases and two-process restart. The evidence explicitly records `git_dirty:true`
+at base commit `5a404c9`; it does not certify that base commit or a release tag.
+The C# GUI/NX2206 candidate run remains pending. See
+[M1 status](m1-status.md) for commands, artifacts, local checks and review results.
+
 ## Historical full workflow validation
 
 - Date: 2026-08-21
@@ -77,7 +86,133 @@ see `migration-mcp-sdk-2.md` for setup and protocol compatibility.
 - Whether NX is native or Teamcenter-managed mode
 - Test machine identifier and Windows version
 
-Version 0.2 initially supports only this recorded NX build and native parts.
+The M1 release matrix requires Python batch/NX2506 and C# GUI/NX2206 on the
+same clean candidate commit. Supported-build claims follow those results;
+historical runs do not certify the current candidate. Native parts only.
+
+## Versioned M1 evidence
+
+The journal `examples/nx_runtime_probe.py` uses only NXOpen and the standard
+library. It records `schema_version: 1`, UTC capture time, NX release, the
+installed `NXBIN/ugraf.exe` file version as `nx_build`, embedded Python and
+architecture, OS, `git_commit`, `git_dirty`, probe launch switches and import
+diagnostics. Git must be on the NX process's PATH. The executable version is
+read with the Windows version-resource API, rather than inferred from the
+release name. Use the same NX installation for the probe and live bridge.
+
+Set `NX_MCP_RUN_JOURNAL_SWITCHES` to the JSON array of switches actually used
+for a successful probe invocation: `[]` for the canonical batch command below.
+Use `null` when running the probe inside the GUI. This variable only records
+provenance; it never adds arguments to `run_journal` or discovers other switches.
+
+After acceptance, the sidecar command `python -m nx_mcp.evidence` validates
+that probe and observes `nx_status` on the connected bridge. It writes a new
+evidence file, adding the actual `bridge_implementation`, protocol and UTC
+observation time. A failed probe, an unidentified/wrong bridge or a different
+NX release is rejected. It refuses to overwrite prior evidence and excludes
+the descriptor, session token, port and active-part information.
+Run the collector from the same checkout: it rejects a changed Git commit or
+clean/dirty state since the probe. The final JSON also records the sidecar
+Python and MCP SDK versions and the configured `run_prefix`. Reprobe and repeat acceptance after code changes;
+this check does not make a dirty tree eligible for release or verify a GUI DLL's
+source by itself. Build and load the candidate DLL as recorded in the GUI guide.
+
+Acceptance and restart JUnit suites carry `git_commit`, `git_dirty`,
+`run_prefix`, bridge implementation and NX release. Restart also records the
+exact NX build; compare these properties with the evidence JSON before release.
+Evidence JSON describes the runtime; the accompanying JUnit reports prove
+which acceptance/restart tests passed. Preserve all three together. A dirty
+working tree is explicitly recorded and is development evidence, not release
+certification. Release evidence requires both environments at the same clean
+tagged candidate; see [RELEASE.md](../RELEASE.md).
+
+### Python batch reproduction
+
+Use a dedicated NX machine with no existing NX session. From the checkout in
+PowerShell 7, with the package already installed in the sidecar environment:
+
+```powershell
+$env:NX_RUN_JOURNAL = "C:\Program Files\Siemens\NX2506\NXBIN\run_journal.exe"
+$env:NX_MCP_WORKSPACE = "D:\NX_MCP_WORKSPACE\m1-$(Get-Date -Format yyyyMMdd-HHmmss)"
+$env:NX_MCP_STATE_DIR = Join-Path $env:NX_MCP_WORKSPACE "state"
+$env:NX_MCP_PROBE_OUTPUT = Join-Path $env:NX_MCP_WORKSPACE "nx-runtime-probe.json"
+$env:NX_MCP_BRIDGE_STOP_FILE = Join-Path $env:NX_MCP_WORKSPACE "stop-bridge"
+$env:NX_MCP_RUN_JOURNAL_SWITCHES = "[]"
+$env:NX_MCP_ALLOW_UNVERIFIED_PYTHON_BRIDGE = "1"
+$env:NX_MCP_REAL_NX = "1"
+$env:NX_MCP_EXPECTED_BRIDGE = "python_batch"
+$env:NX_MCP_REAL_NX_ITERATIONS = "20"
+$env:NX_MCP_REAL_NX_RUN_PREFIX = "acceptance"
+New-Item -ItemType Directory -Path $env:NX_MCP_WORKSPACE | Out-Null
+if (Get-Process ugraf,run_journal -ErrorAction SilentlyContinue) { throw "Use a dedicated idle NX machine." }
+& $env:NX_RUN_JOURNAL (Join-Path $PWD "examples\nx_runtime_probe.py")
+if ($LASTEXITCODE -ne 0) { throw "Runtime probe failed." }
+$bridgeScript = Join-Path $PWD "examples\start_nx_bridge.py"
+$bridgeProcess = Start-Process -FilePath $env:NX_RUN_JOURNAL -ArgumentList ('"' + $bridgeScript + '"') -PassThru -WindowStyle Hidden
+try {
+    $descriptor = Join-Path $env:NX_MCP_STATE_DIR "bridge.json"
+    $deadline = [DateTime]::UtcNow.AddMinutes(2)
+    while (-not (Test-Path -LiteralPath $descriptor)) {
+        if ($bridgeProcess.HasExited -or [DateTime]::UtcNow -ge $deadline) { throw "Bridge startup failed." }
+        Start-Sleep -Milliseconds 200
+    }
+    python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx.py --junitxml="$env:NX_MCP_WORKSPACE/acceptance.xml"
+    if ($LASTEXITCODE -ne 0) { throw "Acceptance failed." }
+    python -m nx_mcp.evidence --probe $env:NX_MCP_PROBE_OUTPUT --output "$env:NX_MCP_WORKSPACE/evidence.json" --bridge python_batch
+    if ($LASTEXITCODE -ne 0) { throw "Evidence collection failed." }
+} finally {
+    New-Item -ItemType File -Path $env:NX_MCP_BRIDGE_STOP_FILE -Force | Out-Null
+    if (-not $bridgeProcess.WaitForExit(120000)) { throw "Bridge did not stop cleanly." }
+    if ($bridgeProcess.ExitCode -ne 0) { throw "Bridge exited unsuccessfully." }
+}
+python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py::test_real_nx_client_reconnects_after_restart --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
+```
+
+Use the sidecar environment's Python executable or activate it before these
+commands. Substitute the installed NX path. The two-process restart test owns
+its journal processes and requires the first bridge to have stopped fully.
+
+### C# GUI reproduction and restart
+
+On a dedicated NX2206 machine, create a separate disposable workspace and
+set the same workspace, absolute state directory, probe output and real-NX
+variables before launching NX. Set `NX_MCP_EXPECTED_BRIDGE=csharp_gui` and
+`NX_MCP_RUN_JOURNAL_SWITCHES=null`. Build the full add-in against that NX
+installation and load it using the [GUI bridge guide](gui-bridge.md).
+Use the same reviewed checkout and final candidate revision as the Python run.
+
+In the idle GUI, run `examples/nx_runtime_probe.py` through File > Execute >
+NX Open as a Python journal. It observes the embedded runtime without changing
+the work part. Then run from the sidecar PowerShell 7 terminal:
+
+```powershell
+python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx.py --junitxml="$env:NX_MCP_WORKSPACE/acceptance.xml"
+if ($LASTEXITCODE -ne 0) { throw "GUI acceptance failed." }
+python -m nx_mcp.evidence --probe $env:NX_MCP_PROBE_OUTPUT --output "$env:NX_MCP_WORKSPACE/evidence.json" --bridge csharp_gui
+if ($LASTEXITCODE -ne 0) { throw "GUI evidence collection failed." }
+$env:NX_MCP_REAL_NX_GUI_RESTART = "1"
+python -m pytest -s -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py::test_real_nx_gui_client_reconnects_after_operator_restart --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
+```
+
+The line test runs a separate MCP stdio client, creates a closed profile using
+four `nx_sketch_line` calls, extrudes it and checks a new body plus a nonempty
+STEP containing solid geometry. Curve metadata alone cannot pass this test.
+Cleanup closes only its confirmed work part. If modeling and cleanup both fail,
+the modeling failure remains primary and cleanup is logged; cleanup failure on
+an otherwise successful path still fails acceptance without retrying the close.
+
+The GUI restart test requires no open work part. Follow its two printed
+instructions: first stop the add-in and wait for the test to confirm the
+descriptor disappeared and calls fail with `not_started`; then close NX,
+restart NX from the configured environment and load the same DLL. Each phase
+has a 180-second deadline. The test holds a read-only Windows handle to the
+original process and refuses a new instance if that process has not exited.
+It keeps one descriptor client, checks a rotated token and a changed NX PID,
+and verifies reconnection to `csharp_gui` on the same executable installation,
+exact file build and NX release. The candidate commit/cleanliness must also
+remain unchanged during restart. It observes processes without closing them.
+It observes the lifecycle; the operator owns NX and must stop the final bridge
+afterward. Reloading a DLL in the same process fails the NX-restart requirement.
 
 ## Preconditions
 
@@ -149,7 +284,7 @@ Do not run this test while another bridge or NX session is active. It requires
 acceptance also checks authentication, path rejection, no work part, invalid
 geometry, wrong-kind IDs, and stale IDs. No failed operation is retried.
 
-Artifacts are explicitly limited to the runtime probe, acceptance/restart
+Artifacts are explicitly limited to the runtime probe, versioned evidence JSON, acceptance/restart
 JUnit XML reports, and the compiled `NxMcpGuiBridge.dll` (without NX assemblies).
 Never upload `bridge.json`, tokens, raw protocol traffic,
 or the entire workspace. Keep generated CAD files local to the disposable

@@ -24,6 +24,9 @@ jobs:
     env:
       NX_MCP_ALLOW_UNVERIFIED_PYTHON_BRIDGE: "1"
       NX_MCP_REAL_NX: "1"
+      NX_MCP_EXPECTED_BRIDGE: "python_batch"
+      # Provenance of the actual probe invocation below, not configurable launch arguments.
+      NX_MCP_RUN_JOURNAL_SWITCHES: "[]"
       NX_MCP_REAL_NX_ITERATIONS: ${{ inputs.iterations }}
       NX_MCP_REAL_NX_RUN_PREFIX: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -106,6 +109,13 @@ jobs:
       - name: Run real NX acceptance test
         shell: pwsh
         run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx.py --junitxml="$env:NX_MCP_WORKSPACE/acceptance.xml"
+      - name: Record versioned evidence from the live bridge
+        shell: pwsh
+        run: >-
+          python -m nx_mcp.evidence
+          --probe "$env:NX_MCP_PROBE_OUTPUT"
+          --output "$env:NX_MCP_WORKSPACE/evidence.json"
+          --bridge python_batch
       - name: Stop NX bridge
         if: always()
         shell: pwsh
@@ -125,7 +135,7 @@ jobs:
 
       - name: Verify reconnection with separately owned NX processes
         shell: pwsh
-        run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
+        run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py::test_real_nx_client_reconnects_after_restart --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
       - name: Upload allowlisted acceptance evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -133,6 +143,7 @@ jobs:
           name: real-nx-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.NX_MCP_WORKSPACE }}/nx-runtime-probe.json
+            ${{ env.NX_MCP_WORKSPACE }}/evidence.json
             ${{ env.NX_MCP_WORKSPACE }}/acceptance.xml
             ${{ env.NX_MCP_WORKSPACE }}/restart.xml
             ${{ env.NX_MCP_WORKSPACE }}/gui-bridge-build/NxMcpGuiBridge.dll

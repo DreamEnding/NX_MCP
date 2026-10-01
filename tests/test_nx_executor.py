@@ -355,6 +355,7 @@ def test_status_reports_version_and_stable_active_part_reference(tmp_path: Path)
     assert first["connected"] is True
     assert first["nx_version"] == "NX 2512.7000"
     assert first["bridge_protocol"] == 1
+    assert first["bridge_implementation"] == "python_batch"
     assert first["active_part"]["kind"] == "part"
     assert first["active_part"]["name"] == "bracket"
 

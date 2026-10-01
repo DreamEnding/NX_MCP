@@ -83,12 +83,18 @@ async def run_iteration(
             },
         )
         await _call(client, "nx_finish_sketch", {"sketch_id": sketch_id})
+        sketches = await _call(client, "nx_list_sketches", {})
+        if not any(value["id"] == sketch_id for value in sketches["objects"]):
+            raise RuntimeError("Created sketch is absent from the sketch list")
         extruded = await _call(
             client,
             "nx_extrude",
             {"sketch_id": sketch_id, "distance": 12.5, "reverse": False},
         )
         after = await _call(client, "nx_list_bodies", {})
+        features = await _call(client, "nx_list_features", {})
+        if not any(value["id"] == extruded["feature"]["id"] for value in features["objects"]):
+            raise RuntimeError("Created extrude is absent from the feature list")
         await _call(client, "nx_fit_view", {})
         exported = await _call(client, "nx_export_step", {"path": step_path})
         exported_path = Workspace(workspace).ensure_inside(workspace / exported["path"])
@@ -142,9 +148,68 @@ async def run_iteration(
     return {
         "iteration": index,
         "nx_version": status["nx_version"],
+        "bridge_implementation": status["bridge_implementation"],
         "feature_id": extruded["feature"]["id"],
         "body_id": extruded["body"]["id"],
     }
+
+
+async def run_line_profile(client: Client, workspace: Path, prefix: str) -> None:
+    """Prove four line calls produce an extrudable closed profile through MCP."""
+    part_path, step_path = _iteration_paths(workspace, f"{prefix}/line", 1)
+    if (await _call(client, "nx_status", {}))["active_part"] is not None:
+        raise RuntimeError("Line acceptance requires no existing work part")
+    owned_part_id = None
+    failed = False
+    try:
+        created = await _call(
+            client,
+            "nx_create_part",
+            {"path": part_path.relative_to(workspace).as_posix(), "units": "mm"},
+        )
+        owned_part_id = created["part"]["part_id"]
+        before = await _call(client, "nx_list_bodies", {})
+        sketch = await _call(client, "nx_create_sketch", {"plane": "XY"})
+        sketch_id = sketch["object"]["id"]
+        corners = ((0, 0), (20, 0), (20, 10), (0, 10))
+        for start, end in zip(corners, corners[1:] + corners[:1], strict=True):
+            line = await _call(
+                client,
+                "nx_sketch_line",
+                {
+                    "sketch_id": sketch_id,
+                    "start": {"x": start[0], "y": start[1]},
+                    "end": {"x": end[0], "y": end[1]},
+                },
+            )
+            if line["object"]["kind"] != "curve" or line["object"]["part_id"] != owned_part_id:
+                raise RuntimeError("Line returned an unexpected object reference")
+        await _call(client, "nx_finish_sketch", {"sketch_id": sketch_id})
+        await _call(client, "nx_extrude", {"sketch_id": sketch_id, "distance": 12.5})
+        after = await _call(client, "nx_list_bodies", {})
+        if len(after["objects"]) != len(before["objects"]) + 1:
+            raise RuntimeError("Line profile did not add exactly one solid body")
+        exported = await _call(
+            client, "nx_export_step", {"path": step_path.relative_to(workspace).as_posix()}
+        )
+        if Workspace(workspace).ensure_inside(exported["path"]) != step_path:
+            raise RuntimeError("Line profile export returned an unexpected path")
+        _verify_file(step_path)
+        _verify_step_solid(step_path)
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        if owned_part_id is not None:
+            try:
+                current = (await _call(client, "nx_status", {}))["active_part"]
+                if current is None or current["part_id"] != owned_part_id:
+                    raise RuntimeError("Line acceptance cleanup cannot confirm part ownership")
+                await _call(client, "nx_close_part", {"save": False})
+            except Exception as cleanup_error:
+                if not failed:
+                    raise
+                print(f"Line acceptance cleanup failed: {cleanup_error}", file=sys.stderr)
 
 
 async def run(workspace: Path, iterations: int, prefix: str = "smoke") -> list[dict[str, Any]]:

@@ -1083,6 +1083,7 @@ namespace NxMcp.GuiBridge
                 "connected", true,
                 "nx_version", nxVersion,
                 "bridge_protocol", Protocol.Version,
+                "bridge_implementation", "csharp_gui",
                 "active_part", part != null ? Reference(part, "part", part, "Part") : null);
         }
 

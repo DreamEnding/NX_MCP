@@ -73,7 +73,13 @@ async def test_stdio_entrypoint_negotiates_without_nx(tmp_path, mode):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", ["auto", "legacy"])
 async def test_stdio_structured_success_through_bridge(tmp_path, mode):
-    status = {"connected": True, "nx_version": "fake", "bridge_protocol": 1, "active_part": None}
+    status = {
+        "connected": True,
+        "nx_version": "fake",
+        "bridge_protocol": 1,
+        "bridge_implementation": "python_batch",
+        "active_part": None,
+    }
     bridge = BridgeServer(lambda method, params: status, token="test-token")
     descriptor = BridgeDescriptor.create(bridge.port, "fake", token="test-token")
     descriptor.write(tmp_path / "nx-mcp" / "bridge.json")

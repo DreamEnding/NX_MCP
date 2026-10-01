@@ -17,6 +17,7 @@ class StubBridge:
             "connected": True,
             "nx_version": "NX test",
             "bridge_protocol": 1,
+            "bridge_implementation": "python_batch",
             "active_part": None,
         }
 
@@ -55,8 +56,22 @@ async def test_status_returns_structured_content():
         "connected": True,
         "nx_version": "NX test",
         "bridge_protocol": 1,
+        "bridge_implementation": "python_batch",
         "active_part": None,
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("implementation", ["python_batch", "csharp_gui", None])
+async def test_status_identifies_both_bridges_and_accepts_older_protocol_v1(implementation):
+    response = {"connected": True, "nx_version": "NX test", "bridge_protocol": 1}
+    if implementation is not None:
+        response["bridge_implementation"] = implementation
+    async with Client(create_server(RecordingBridge(response))) as client:
+        result = await client.call_tool("nx_status", {})
+    assert not result.is_error
+    assert result.structured_content["bridge_implementation"] == (implementation or "unknown")
+    assert result.structured_content["bridge_protocol"] == 1
 
 
 @pytest.mark.asyncio

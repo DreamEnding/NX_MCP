@@ -18,9 +18,10 @@ core workflow have automated coverage. The Python bridge passed the documented
 20-run batch workflow on Siemens NX 2506 (`ugraf` 2506.4021) on 2026-08-21.
 It remains opt-in while a non-blocking NX GUI event pump is validated; the
 bundled Python Journal runner is intentionally batch-only. The safety-hardening
-changes have local regression coverage and a successful NX runtime import probe
-on 2026-09-14, but still need a new full real-NX acceptance run; the historical
-20-run result does not certify the changed save/close/undo behavior.
+changes have local regression coverage. A development-tree M1 run on 2026-09-30
+passed a fresh 20-iteration NX2506 batch loop, all 16 tools, negative cases and
+process restart. Release still requires the same clean candidate on both
+Python batch/NX2506 and C# GUI/NX2206; see [M1 status](docs/m1-status.md).
 
 The default `tools/list` exposes only these 16 tools:
 
@@ -51,16 +52,19 @@ there is no blanket certification of every tool or failure branch.
 
 | Capability | Availability | Local evidence | Current real-runtime boundary |
 | --- | --- | --- | --- |
-| Rectangle/sketch/extrude, queries, STEP, undo, save/reopen | Default tools | Automated core workflow tests | Historical 2026-08-21 batch loop; current safety/SDK changes await a fresh loop |
+| Rectangle/sketch/extrude, queries, STEP, undo, save/reopen | Default tools | Automated core workflow tests | Development-tree NX2506 batch loop passed 2026-09-30; clean release-candidate matrix pending |
 | Other default-tool branches, including sketch lines | Default tools | Automated tests | Only scenarios explicitly recorded in the acceptance guide are accepted |
-| Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Current real-NX negative cases await rerun |
+| Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Development-tree NX2506 negative cases passed 2026-09-30; clean release-candidate matrix pending |
 | Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
-| Bridge/process restart | Existing lifecycle | Automated bridge tests | Current independent-process restart test awaits rerun |
+| Bridge/process restart | Existing lifecycle | Automated bridge tests | Development-tree Python/NX2506 process restart passed 2026-09-30; GUI and clean release-candidate matrix pending |
 | Interactive GUI scheduling | C# add-in in `nx_gui_bridge/`, loaded on demand | Protocol checks against the live add-in | NX2206 acceptance only (2026-09-18, re-validated 2026-09-20); see [GUI bridge](docs/gui-bridge.md) |
 | Legacy tools / arbitrary Journals | Disabled by default | Mock-NX coverage only | Unverified; explicit opt-in is not certification |
 | STEP-to-USD sample validation | Separate example, not MCP | Unit tests and opt-in OpenUSD checker fixtures | Fresh NX STEP-to-USD chain remains pending |
 
 See [real NX evidence](docs/real-nx-validation.md) for dates and exact coverage.
+`nx_status.bridge_implementation` identifies `python_batch` or `csharp_gui`.
+The sidecar reports `unknown` for an older protocol-v1 bridge that omits this
+field; update that bridge before collecting release evidence.
 Session object IDs are not permanent asset IDs. Saving/closing the work part
 must not be described as saving/closing all assembly components.
 
@@ -86,6 +90,11 @@ independent of this project's `0.2.0.dev0` release gate. See
 [MCP SDK v2 migration](docs/migration-mcp-sdk-2.md) for setup and compatibility.
 
 ## Requirements
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development and evidence requirements,
+[SECURITY.md](SECURITY.md) for private vulnerability reporting, and
+[RELEASE.md](RELEASE.md) for the `0.2.0` gate. Changes are recorded in
+[CHANGELOG.md](CHANGELOG.md).
 
 - Windows with a local native Siemens NX installation (validated on NX 2506)
 - Python 3.10+
