@@ -1079,11 +1079,19 @@ namespace NxMcp.GuiBridge
         private Dictionary<string, object> Status(Dictionary<string, object> values)
         {
             Part part = WorkPart(false);
+            string units = null;
+            if (part != null)
+            {
+                if (part.PartUnits == BasePart.Units.Millimeters) units = "mm";
+                else if (part.PartUnits == BasePart.Units.Inches) units = "inch";
+                else throw new NxToolError("NX_UNSUPPORTED_UNITS", "Unrecognized work part units");
+            }
             return Result(
                 "connected", true,
                 "nx_version", nxVersion,
                 "bridge_protocol", Protocol.Version,
                 "bridge_implementation", "csharp_gui",
+                "units", units,
                 "active_part", part != null ? Reference(part, "part", part, "Part") : null);
         }
 

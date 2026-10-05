@@ -30,6 +30,13 @@ async def test_sdk_v2_negotiates_and_preserves_tool_contract(mode):
         tools = (await client.list_tools()).tools
         assert {tool.name for tool in tools} == CERTIFIED_TOOL_NAMES
         assert all(tool.output_schema is not None for tool in tools)
+        assert all(tool.annotations is not None for tool in tools)
+        hints = next(tool for tool in tools if tool.name == "nx_status").model_dump(by_alias=True)[
+            "annotations"
+        ]
+        assert hints["readOnlyHint"] is True
+        assert hints["destructiveHint"] is False
+        assert "read_only_hint" not in hints
         result = await client.call_tool("nx_status", {})
         assert not result.is_error
         assert result.structured_content["bridge_protocol"] == BRIDGE_PROTOCOL_VERSION == 1
@@ -79,6 +86,7 @@ async def test_stdio_structured_success_through_bridge(tmp_path, mode):
         "bridge_protocol": 1,
         "bridge_implementation": "python_batch",
         "active_part": None,
+        "units": None,
     }
     bridge = BridgeServer(lambda method, params: status, token="test-token")
     descriptor = BridgeDescriptor.create(bridge.port, "fake", token="test-token")

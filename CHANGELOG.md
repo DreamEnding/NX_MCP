@@ -4,6 +4,11 @@
 
 ### Added
 
+- M2 foundation: native work-part units in `nx_status` for both bridges, with
+  `null` for no part or an older bridge; unit-aware modeling guidance.
+- Explicit `readOnlyHint` and `destructiveHint` on all 16 certified MCP tools.
+- Metric/inch save-and-reopen acceptance and status-output parity checks.
+- Inspection contract draft for the remaining M2 measurement tools.
 - Official MCP Python SDK v2 stdio sidecar with typed certified tool contracts.
 - Authenticated loopback protocol v1, workspace confinement, session-scoped IDs,
   and explicit mutation rollback/recovery behavior.

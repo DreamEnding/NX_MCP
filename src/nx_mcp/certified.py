@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal, Protocol
 
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError as MCPToolError
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from nx_mcp import __version__
@@ -84,63 +85,63 @@ def create_certified_server(
             tool_error = NXToolError("NX_PATH_OUTSIDE_WORKSPACE", str(error))
             raise MCPToolError(json.dumps(tool_error.as_dict(), ensure_ascii=False)) from error
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False))
     async def nx_status() -> StatusResult:
-        """Report bridge, NX version, and active-part status."""
+        """Report bridge, NX version, active part, and its native units (mm/inch)."""
         return StatusResult(**await call("nx_status", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_create_part(path: str, units: Literal["mm", "inch"] = "mm") -> PartResult:
         """Create a part inside the configured workspace."""
         return PartResult(
             **await call("nx_create_part", {"path": resolve_path(path), "units": units})
         )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_open_part(path: str) -> PartResult:
         """Open a part from the configured workspace."""
         return PartResult(**await call("nx_open_part", {"path": resolve_path(path)}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True))
     async def nx_save_part() -> OperationResult:
         """Save the active work part."""
         return OperationResult(**await call("nx_save_part", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True))
     async def nx_close_part(save: bool = True) -> OperationResult:
         """Close the active work part, optionally saving it first."""
         return OperationResult(**await call("nx_close_part", {"save": save}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True))
     async def nx_export_step(path: str) -> ExportResult:
         """Export the active work part as STEP inside the configured workspace."""
         return ExportResult(**await call("nx_export_step", {"path": resolve_path(path)}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False))
     async def nx_list_sketches() -> ObjectListResult:
         """List sketches in the active work part."""
         return ObjectListResult(**await call("nx_list_sketches", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False))
     async def nx_list_bodies() -> ObjectListResult:
         """List bodies in the active work part."""
         return ObjectListResult(**await call("nx_list_bodies", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False))
     async def nx_list_features() -> ObjectListResult:
         """List features in the active work part."""
         return ObjectListResult(**await call("nx_list_features", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_create_sketch(
         plane: Literal["XY", "XZ", "YZ"] = "XY", name: str | None = None
     ) -> ObjectResult:
         """Create and activate a sketch on a principal datum plane."""
         return ObjectResult(**await call("nx_create_sketch", {"plane": plane, "name": name}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_sketch_line(sketch_id: str, start: Point2D, end: Point2D) -> ObjectResult:
-        """Add a line to an explicit sketch reference."""
+        """Add a line to an explicit sketch reference, using the work part's native units."""
         return ObjectResult(
             **await call(
                 "nx_sketch_line",
@@ -148,11 +149,11 @@ def create_certified_server(
             )
         )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_sketch_rectangle(
         sketch_id: str, corner1: Point2D, corner2: Point2D
     ) -> ObjectListResult:
-        """Add a rectangle to an explicit sketch reference."""
+        """Add a rectangle to an explicit sketch reference, using the work part's native units."""
         return ObjectListResult(
             **await call(
                 "nx_sketch_rectangle",
@@ -164,18 +165,18 @@ def create_certified_server(
             )
         )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_finish_sketch(sketch_id: str) -> ObjectResult:
         """Deactivate and finish an explicit sketch reference."""
         return ObjectResult(**await call("nx_finish_sketch", {"sketch_id": sketch_id}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_extrude(
         sketch_id: str,
         distance: Annotated[float, Field(gt=0, allow_inf_nan=False)],
         reverse: bool = False,
     ) -> ExtrudeResult:
-        """Extrude a sketch into a new body."""
+        """Extrude a sketch into a new body; distance uses the work part's native units."""
         return ExtrudeResult(
             **await call(
                 "nx_extrude",
@@ -183,12 +184,12 @@ def create_certified_server(
             )
         )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True))
     async def nx_undo() -> OperationResult:
         """Undo the last visible NX MCP operation."""
         return OperationResult(**await call("nx_undo", {}))
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False))
     async def nx_fit_view() -> OperationResult:
         """Fit the active modeling view."""
         return OperationResult(**await call("nx_fit_view", {}))

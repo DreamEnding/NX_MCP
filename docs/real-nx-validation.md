@@ -201,6 +201,13 @@ Cleanup closes only its confirmed work part. If modeling and cleanup both fail,
 the modeling failure remains primary and cleanup is logged; cleanup failure on
 an otherwise successful path still fails acceptance without retrying the close.
 
+The units tests use the same MCP stdio boundary to create separate metric and
+inch parts. They assert `nx_status.units` before and after save/close/reopen,
+plus `null` without a work part. Each test closes only its confirmed owned part.
+These tests run on either bridge through `tests/test_real_nx.py`; Python/NX2506
+development evidence is recorded in [M2 status](m2-status.md), while GUI units
+acceptance is still pending.
+
 The GUI restart test requires no open work part. Follow its two printed
 instructions: first stop the add-in and wait for the test to confirm the
 descriptor disappeared and calls fail with `not_started`; then close NX,

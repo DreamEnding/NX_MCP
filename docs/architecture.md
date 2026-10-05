@@ -94,6 +94,20 @@ state; restarting does not itself repair uncertain model contents.
 
 ## Certification boundary
 
+`nx_status.units` is additive to protocol v1: `mm` or `inch` comes from the
+current work part's `BasePart.PartUnits`, not display settings or the creation
+request. Without a work part it is `null`; the sidecar also defaults a missing
+older-bridge field to `null`. An unrecognized native unit raises
+`NX_UNSUPPORTED_UNITS`. Inputs for sketch coordinates and extrusion distance
+remain in native part units. The [inspection contract](inspection-contract.md)
+records this implemented unit contract and proposals for future measurements.
+
+Every certified MCP tool declares `readOnlyHint` and `destructiveHint`.
+Status and object lists are read-only. Save, close, STEP export and undo are
+marked potentially destructive because they can replace files, discard work
+or remove model contents. View fitting changes UI state, so is not read-only.
+Annotations are client hints and do not alter validation, undo or permissions.
+
 `server.py` explicitly registers the 16 certified tools. Legacy modules under
 `tools/` are imported only when `NX_MCP_ENABLE_EXPERIMENTAL=1` is set on both
 processes; Journal tools require `NX_MCP_ENABLE_JOURNAL=1` as well. A tool may

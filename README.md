@@ -53,6 +53,7 @@ there is no blanket certification of every tool or failure branch.
 | Capability | Availability | Local evidence | Current real-runtime boundary |
 | --- | --- | --- | --- |
 | Rectangle/sketch/extrude, queries, STEP, undo, save/reopen | Default tools | Automated core workflow tests | Development-tree NX2506 batch loop passed 2026-09-30; clean release-candidate matrix pending |
+| Native work-part units in `nx_status` | Both bridges implemented; default status field | Unit/compatibility tests, status-output parity, C# build | Metric/inch MCP save/reopen passed on development-tree Python/NX2506 on 2026-10-02; GUI runtime pending |
 | Other default-tool branches, including sketch lines | Default tools | Automated tests | Only scenarios explicitly recorded in the acceptance guide are accepted |
 | Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Development-tree NX2506 negative cases passed 2026-09-30; clean release-candidate matrix pending |
 | Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
@@ -65,6 +66,13 @@ See [real NX evidence](docs/real-nx-validation.md) for dates and exact coverage.
 `nx_status.bridge_implementation` identifies `python_batch` or `csharp_gui`.
 The sidecar reports `unknown` for an older protocol-v1 bridge that omits this
 field; update that bridge before collecting release evidence.
+`nx_status.units` reports the active work part's native length unit (`mm` or
+`inch`), which sketch coordinates and extrusion distances also use. It is
+`null` without a work part or when an older bridge omits units; confirm units
+before using dimensions in that case. All 16 tools publish `readOnlyHint` and
+`destructiveHint`; these hints describe operations, while workspace and recovery
+rules enforce them. See [M2 status](docs/m2-status.md) for validation and the
+remaining measurement work.
 Session object IDs are not permanent asset IDs. Saving/closing the work part
 must not be described as saving/closing all assembly components.
 

@@ -177,6 +177,7 @@ class FakePart(FakeObject):
     def __init__(self, name: str = "bracket", tag: int = 42):
         super().__init__(tag, name)
         self.FullPath = f"C:/workspace/{name}.prt"
+        self.PartUnits = "base-mm"
         self.Sketches = FakeSketches(FakeSketch(101, "SKETCH(1)"))
         self.Bodies = FakeCollection(FakeObject(201, "BODY(1)"))
         self.Features = FakeFeatures(self, FakeFeature(301, "EXTRUDE(1)", [self.Bodies.values[0]]))
@@ -258,6 +259,7 @@ class FakeFileNew:
 
     def Commit(self):
         part = FakePart(Path(self.NewFileName).stem, 43)
+        part.PartUnits = {"mm": "base-mm", "inch": "base-inch"}[self.Units]
         part.FullPath = self.NewFileName
         self.parts._set_active(part)
         return part
@@ -315,6 +317,7 @@ class FakeSession:
 
 FAKE_NXOPEN = SimpleNamespace(
     BasePart=SimpleNamespace(
+        Units=SimpleNamespace(Millimeters="base-mm", Inches="base-inch"),
         SaveComponents=SimpleNamespace(TrueValue=True, FalseValue=False),
         CloseAfterSave=SimpleNamespace(FalseValue=False),
         CloseWholeTree=SimpleNamespace(TrueValue="whole-tree", FalseValue="part-only"),
@@ -358,6 +361,43 @@ def test_status_reports_version_and_stable_active_part_reference(tmp_path: Path)
     assert first["bridge_implementation"] == "python_batch"
     assert first["active_part"]["kind"] == "part"
     assert first["active_part"]["name"] == "bracket"
+
+
+@pytest.mark.parametrize("units", ["mm", "inch", None])
+def test_status_reads_current_work_part_units_without_mutation(tmp_path, units):
+    session = FakeSession()
+    if units is None:
+        session.Parts.Work = None
+    else:
+        session.Parts.Work.PartUnits = {"mm": "base-mm", "inch": "base-inch"}[units]
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+
+    result = executor.execute("nx_status", {})
+
+    assert result["units"] == units
+    assert session.marks == {}
+
+
+def test_status_refreshes_units_after_work_part_switch(tmp_path):
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    assert executor.execute("nx_status", {})["units"] == "mm"
+    other = FakePart("inch_part", 99)
+    other.PartUnits = "base-inch"
+    session.Parts._set_active(other)
+    assert executor.execute("nx_status", {})["units"] == "inch"
+
+
+def test_status_rejects_unrecognized_units_without_guessing(tmp_path):
+    session = FakeSession()
+    session.Parts.Work.PartUnits = "unrecognized"
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+
+    with pytest.raises(NXToolError) as caught:
+        executor.execute("nx_status", {})
+
+    assert caught.value.code == "NX_UNSUPPORTED_UNITS"
+    assert session.marks == {}
 
 
 def test_query_commands_return_typed_stable_object_references(tmp_path: Path):

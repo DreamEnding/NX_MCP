@@ -17,10 +17,58 @@ from nx_mcp.bridge import (
     default_descriptor_path,
 )
 from nx_mcp.provenance import git_state
-from nx_mcp.real_smoke import run, run_line_profile
+from nx_mcp.real_smoke import _call, run, run_line_profile
 from nx_mcp.runtime import NXToolError
 
 pytestmark = pytest.mark.real_nx
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("units", ["mm", "inch"])
+async def test_real_nx_status_units_survive_save_and_reopen(units) -> None:
+    if os.environ.get("NX_MCP_REAL_NX") != "1":
+        pytest.skip("requires a dedicated Siemens NX runner")
+    prefix = os.environ.get("NX_MCP_REAL_NX_RUN_PREFIX", "pytest-real-nx")
+    parameters = StdioServerParameters(
+        command=sys.executable, args=["-m", "nx_mcp.server"], env=dict(os.environ)
+    )
+    async with Client(parameters) as client:
+        initial = await _call(client, "nx_status", {})
+        assert initial["active_part"] is None, "Do not run against a user work part"
+        assert initial["units"] is None
+        path = f"{prefix}/units-{units}.prt"
+        workspace = Path(os.environ["NX_MCP_WORKSPACE"]).resolve()
+        assert not (workspace / path).exists()
+        owned_id = None
+        failed = False
+        try:
+            created = await _call(client, "nx_create_part", {"path": path, "units": units})
+            owned_id = created["part"]["part_id"]
+            status = await _call(client, "nx_status", {})
+            assert status["active_part"]["part_id"] == owned_id
+            assert status["units"] == units
+            await _call(client, "nx_save_part", {})
+            await _call(client, "nx_close_part", {"save": False})
+            owned_id = None
+            closed = await _call(client, "nx_status", {})
+            assert closed["active_part"] is None
+            assert closed["units"] is None
+            reopened = await _call(client, "nx_open_part", {"path": path})
+            owned_id = reopened["part"]["part_id"]
+            assert (await _call(client, "nx_status", {}))["units"] == units
+        except BaseException:
+            failed = True
+            raise
+        finally:
+            if owned_id is not None:
+                try:
+                    current = (await _call(client, "nx_status", {}))["active_part"]
+                    assert current is not None and current["part_id"] == owned_id
+                    await _call(client, "nx_close_part", {"save": False})
+                except Exception as cleanup_error:
+                    if not failed:
+                        raise
+                    print(f"Units acceptance cleanup failed: {cleanup_error}", file=sys.stderr)
 
 
 @pytest.mark.asyncio

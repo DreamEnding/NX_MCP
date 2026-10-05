@@ -58,6 +58,7 @@ async def test_status_returns_structured_content():
         "bridge_protocol": 1,
         "bridge_implementation": "python_batch",
         "active_part": None,
+        "units": None,
     }
 
 
@@ -72,6 +73,45 @@ async def test_status_identifies_both_bridges_and_accepts_older_protocol_v1(impl
     assert not result.is_error
     assert result.structured_content["bridge_implementation"] == (implementation or "unknown")
     assert result.structured_content["bridge_protocol"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("implementation", ["python_batch", "csharp_gui"])
+@pytest.mark.parametrize("units", ["mm", "inch", None])
+async def test_status_preserves_explicit_native_units(implementation, units):
+    response = {
+        "connected": True,
+        "nx_version": "NX test",
+        "bridge_protocol": 1,
+        "bridge_implementation": implementation,
+        "units": units,
+    }
+    async with Client(create_server(RecordingBridge(response))) as client:
+        result = await client.call_tool("nx_status", {})
+    assert not result.is_error
+    assert result.structured_content["units"] == units
+
+
+@pytest.mark.asyncio
+async def test_status_does_not_guess_units_from_older_bridge():
+    response = {"connected": True, "nx_version": "NX test", "bridge_protocol": 1}
+    async with Client(create_server(RecordingBridge(response))) as client:
+        result = await client.call_tool("nx_status", {})
+    assert not result.is_error
+    assert result.structured_content["units"] is None
+
+
+@pytest.mark.asyncio
+async def test_certified_tools_publish_operation_hints():
+    read_only = {"nx_status", "nx_list_sketches", "nx_list_bodies", "nx_list_features"}
+    destructive = {"nx_save_part", "nx_close_part", "nx_export_step", "nx_undo"}
+    async with Client(create_server(StubBridge())) as client:
+        tools = (await client.list_tools()).tools
+    for tool in tools:
+        assert tool.annotations is not None, tool.name
+        hints = tool.annotations.model_dump(by_alias=True)
+        assert hints["readOnlyHint"] == (tool.name in read_only), tool.name
+        assert hints["destructiveHint"] == (tool.name in destructive), tool.name
 
 
 @pytest.mark.asyncio

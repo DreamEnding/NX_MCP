@@ -16,9 +16,10 @@ A tool returning successfully is not, by itself, proof of the intended model.
    a direct NXOpen attach. Read the [setup and validation guide](../../docs/real-nx-validation.md)
    only when setup or acceptance is requested.
 2. Establish the target part, requested changes, units, and expected result.
-   `nx_status` identifies the active part but does not report its units. For an
-   existing part, obtain units from verified context or ask before using numeric
-   dimensions. Do not silently assume millimeters.
+   Read `nx_status.units`: `mm` or `inch` is the active work part's native length
+   unit. Sketch coordinates and extrusion distances use that unit. Convert the
+   user's dimensions into it before modeling. If units are `null` or absent on
+   an older bridge, obtain them from verified context or ask before using numbers.
 3. Use paths relative to the configured `NX_MCP_WORKSPACE`. For a new part, choose
    a fresh path and pass `units` explicitly. A disposable acceptance run requires
    no active part; ordinary editing may use the user's explicitly selected part.

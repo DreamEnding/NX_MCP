@@ -243,12 +243,22 @@ class NXOpenExecutor:
 
     def _status(self) -> dict[str, Any]:
         part = self._work_part(required=False)
+        units = None
+        if part is not None:
+            native_units = part.PartUnits
+            if native_units == self.nxopen.BasePart.Units.Millimeters:
+                units = "mm"
+            elif native_units == self.nxopen.BasePart.Units.Inches:
+                units = "inch"
+            else:
+                raise NXToolError("NX_UNSUPPORTED_UNITS", "Unrecognized work part units")
         return {
             "connected": True,
             "nx_version": self.nx_version,
             "bridge_protocol": BRIDGE_PROTOCOL_VERSION,
             "bridge_implementation": "python_batch",
             "active_part": self._reference(part, "part", part, "Part") if part else None,
+            "units": units,
         }
 
     def _list_objects(self, collection_name: str, kind: ObjectKind) -> dict[str, Any]:

@@ -395,6 +395,26 @@ def test_both_bridges_implement_the_certified_tools(python_bridge, csharp_bridge
     assert set(csharp_bridge.commands) == CERTIFIED_TOOL_NAMES
 
 
+@pytest.mark.fake_nx
+def test_status_result_fields_match_both_bridges(tmp_path, source):
+    from tests.test_nx_executor import FAKE_NXOPEN, FakeSession
+
+    masked = _mask_literals(source)
+    header = _only_match(
+        r"Dictionary<string, object>\s+Status\(Dictionary<string, object> values\)",
+        masked,
+        "Status handler",
+    )
+    start, end = _group(masked, header.end(), "{")
+    returned = _only_match(r"return\s+Result\(", masked[start:end], "Status result")
+    pairs = _arguments(masked, _group(masked, start + returned.end() - 1, "("))
+    assert len(pairs) > 0 and len(pairs) % 2 == 0, "Status result must contain key/value pairs"
+    fields = {_string(source[a:b], "Status field") for a, b in pairs[::2]}
+    assert len(fields) == len(pairs) // 2, "Status result contains duplicate fields"
+    executor = NXOpenExecutor(FakeSession(), FAKE_NXOPEN, "fake", Workspace(tmp_path))
+    assert fields == set(executor.execute("nx_status", {}))
+
+
 def test_every_mutation_is_a_registered_command(python_bridge, csharp_bridge):
     assert python_bridge.mutations <= set(python_bridge.commands)
     assert csharp_bridge.mutations <= set(csharp_bridge.commands)
