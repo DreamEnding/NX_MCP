@@ -59,6 +59,32 @@ namespace NxMcp.GuiBridge
         public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
     }
 
+    /// <summary>
+    /// String set built on Dictionary (mscorlib) instead of HashSet (System.Core):
+    /// NX's journal compiler references mscorlib but not System.Core, so the
+    /// file compiles as a journal. IEnumerable is implemented only so the
+    /// collection initializer syntax works.
+    /// </summary>
+    internal sealed class StringSet : IEnumerable
+    {
+        private readonly Dictionary<string, bool> items = new Dictionary<string, bool>();
+
+        public bool Add(string value)
+        {
+            if (items.ContainsKey(value)) return false;
+            items[value] = true;
+            return true;
+        }
+
+        public bool Contains(string value) { return items.ContainsKey(value); }
+
+        public bool Remove(string value) { return items.Remove(value); }
+
+        public int Count { get { return items.Count; } }
+
+        public IEnumerator GetEnumerator() { return items.Keys.GetEnumerator(); }
+    }
+
     internal sealed class NxToolError : Exception
     {
         public readonly string Code;
@@ -617,7 +643,7 @@ namespace NxMcp.GuiBridge
         }
 
         private readonly Dictionary<string, Entry> objects = new Dictionary<string, Entry>();
-        private readonly HashSet<string> staleIds = new HashSet<string>();
+        private readonly StringSet staleIds = new StringSet();
         private readonly Dictionary<string, string> identities = new Dictionary<string, string>();
 
         public ObjectRef Register(object value, string kind, string name, string partId)
@@ -703,12 +729,12 @@ namespace NxMcp.GuiBridge
             public Handler Run;
         }
 
-        private static readonly HashSet<string> Mutations = new HashSet<string>
+        private static readonly StringSet Mutations = new StringSet
         {
             "nx_create_sketch", "nx_sketch_line", "nx_sketch_rectangle", "nx_finish_sketch", "nx_extrude",
         };
 
-        private static readonly HashSet<string> Queries = new HashSet<string>
+        private static readonly StringSet Queries = new StringSet
         {
             "nx_status", "nx_list_sketches", "nx_list_bodies", "nx_list_features",
         };
@@ -718,7 +744,7 @@ namespace NxMcp.GuiBridge
         private readonly Workspace workspace;
         private readonly ObjectRegistry objects = new ObjectRegistry();
         private readonly List<Session.UndoMarkId> undoMarks = new List<Session.UndoMarkId>();
-        private readonly HashSet<string> unsafeParts = new HashSet<string>();
+        private readonly StringSet unsafeParts = new StringSet();
         private readonly Dictionary<string, Command> commands = new Dictionary<string, Command>();
         private string undoPartId;
 
@@ -1387,7 +1413,7 @@ namespace NxMcp.GuiBridge
             bool reverse = (bool)values["reverse"];
             Part part = WorkPart(true);
             Sketch sketch = ResolveSketch(values, part);
-            var bodiesBefore = new HashSet<string>();
+            var bodiesBefore = new StringSet();
             foreach (Body existing in part.Bodies)
             {
                 bodiesBefore.Add(Identity(existing));
