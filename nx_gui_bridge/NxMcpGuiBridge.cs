@@ -59,6 +59,34 @@ namespace NxMcp.GuiBridge
         public static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
     }
 
+    /// <summary>
+    /// Set built on Dictionary (mscorlib). NX's journal compiler references mscorlib but
+    /// not System.Core, where System.Collections.Generic.HashSet lives, so the source can
+    /// only run as a journal with a set of its own. It keeps the HashSet name because a
+    /// type in the enclosing namespace takes precedence over the using directive in both
+    /// builds, and because tests/test_bridge_parity.py reads the Mutations declaration by
+    /// that literal name. IEnumerable exists only for the collection initializer syntax.
+    /// </summary>
+    internal sealed class HashSet<T> : IEnumerable
+    {
+        private readonly Dictionary<T, bool> items = new Dictionary<T, bool>();
+
+        public bool Add(T value)
+        {
+            if (items.ContainsKey(value)) return false;
+            items[value] = true;
+            return true;
+        }
+
+        public bool Contains(T value) { return items.ContainsKey(value); }
+
+        public bool Remove(T value) { return items.Remove(value); }
+
+        public int Count { get { return items.Count; } }
+
+        public IEnumerator GetEnumerator() { return items.Keys.GetEnumerator(); }
+    }
+
     internal sealed class NxToolError : Exception
     {
         public readonly string Code;
