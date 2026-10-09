@@ -100,5 +100,5 @@ jobs:
           if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
             throw "The production-source C# harness requires the in-box .NET Framework compiler."
           }
-      - name: Compile production C# harness and test startup, protocol probes and ACLs
-        run: python -m pytest -q -p no:cacheprovider tests/test_gui_bridge_startup.py
+      - name: Test C# startup harness and build/sign boundary
+        run: python -m pytest -q -p no:cacheprovider tests/test_gui_bridge_startup.py tests/test_gui_bridge_build.py

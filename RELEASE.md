@@ -54,5 +54,30 @@ recorded as unavailable checks, never as passing results.
 - [ ] Publish the reviewed wheel and release notes with evidence links. Verify
       the published version, then mark M1 complete in the Roadmap.
 
+## Signed GUI bridge assets (Issue #15)
+
+- [ ] From the same clean release commit, build with `nx_gui_bridge/build.ps1
+      -NxRoot <installation> -OutputDirectory <output> -Sign` on a machine with
+      the matching NX Open programming tools and `dotnet_author` license.
+      Require successful signing and `SignDotNet.exe -verify`; an unsigned
+      build or hosted fake-signer test is not a signed release asset.
+- [ ] Validate the final signed DLL in an interactive NX session without
+      `dotnet_author`: on-demand load, `startup` load, certified acceptance and
+      GUI restart. Record the exact NX build and results. The signature does
+      not supply the NX feature licenses used by the tools.
+- [ ] Publish a DLL for each supported NX release, or explicitly list the
+      releases/builds tested with that DLL. Distinguish compilation, journal
+      playback and signed-DLL runtime results; do not infer compatibility.
+- [ ] In the release notes, record the full source commit, NX/SDK build,
+      compiler and signing-tool versions, build command, verification result,
+      acceptance evidence links and SHA-256 of the final signed DLL. Generate
+      the hash after signing with `Get-FileHash -Algorithm SHA256` and compare
+      it again after downloading the uploaded asset.
+- [ ] Attach only the project DLL (and its public evidence), keeping Siemens
+      SDK assemblies/resources, bridge credentials and generated CAD local.
+- [ ] Update [the GUI bridge download instructions](docs/gui-bridge.md#users-without-an-author-license)
+      to point to the actual signed release asset. Until it exists and passes
+      these checks, leave Issue #15 open and describe the missing evidence.
+
 Do not remove the Python feasibility gate as a consequence of batch acceptance;
 changing its interactive support claim requires its own real GUI evidence.

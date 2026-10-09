@@ -42,12 +42,71 @@ The build uses the in-box .NET Framework 4.x `csc.exe`; no .NET SDK or
 and `NXOpen.Utilities.dll` from the installed NX `NXBIN/managed` directory:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File nx_gui_bridge\build.ps1 -NxRoot "C:\Program Files\Siemens\NX2206" -OutputDirectory "$env:LOCALAPPDATA\nx-mcp\gui-bridge"
+pwsh -File nx_gui_bridge\build.ps1 -NxRoot "C:\Program Files\Siemens\NX2206" -OutputDirectory "$env:LOCALAPPDATA\nx-mcp\gui-bridge"
 ```
 
-NX loads an unsigned add-in only with an NX Open .NET author license
-(`dotnet_author`). Otherwise, sign the DLL with NX's `SignDotNet.exe`. Build
-to a local folder: NX locks the DLL while it is loaded.
+This produces an unsigned DLL, which requires an NX Open .NET author license
+(`dotnet_author`) to load. Build to a local folder: NX locks the DLL while it
+is loaded.
+
+### Build and sign for distribution
+
+On a machine with `dotnet_author` and the NX Open programming tools installed:
+
+```powershell
+pwsh -File nx_gui_bridge\build.ps1 -NxRoot "C:\Program Files\Siemens\NX2206" -OutputDirectory "build\gui-nx2206" -Sign
+Get-FileHash -Algorithm SHA256 -LiteralPath "build\gui-nx2206\NxMcpGuiBridge.dll"
+```
+
+`-Sign` requires `UGOPEN\NXSigningResource.res` and `NXBIN\SignDotNet.exe`
+from that NX installation. It embeds the Siemens resource, builds the DLL,
+signs it and runs `SignDotNet.exe -verify`. A missing resource, a failed build,
+signing failure or verification failure stops the script. A failed signing
+attempt may leave an unsigned DLL in the output directory; do not distribute it.
+
+The resource is supplied with the NX Open programming tools. If `UGOPEN` is
+absent, modify the matching NX installation to include **Programming Tools** using the
+original installer or media from the [Siemens Customer Center](https://customer.sw.siemens.com/en-US).
+Installing the tools does not supply an author license. Ask your NX license
+administrator or Siemens supplier about **NX Open for .NET Author** and the
+`dotnet_author` feature; Siemens lists it in the
+[NX add-on module brochure](https://blogs.sw.siemens.com/wp-content/uploads/sites/2/2020/11/NX-Add-on-Module-Brochure.pdf).
+Keep Siemens SDK assemblies and the signing resource out of this repository.
+
+### Users without an author license
+
+Check the [project Releases](https://github.com/DreamEnding/NX_MCP/releases)
+for a signed `NxMcpGuiBridge.dll` asset and its tested NX build. Signed asset
+publication is tracked in [Issue #15](https://github.com/DreamEnding/NX_MCP/issues/15);
+at the time of this change, no signed DLL has been published. A wheel or an
+unsigned CI artifact does not include a signed GUI bridge.
+
+When a signed asset is available, verify its SHA-256 against the release notes
+and its NX signature before loading it:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath ".\NxMcpGuiBridge.dll"
+& "$env:UGII_BASE_DIR\NXBIN\SignDotNet.exe" -verify ".\NxMcpGuiBridge.dll"
+if ($LASTEXITCODE -ne 0) { throw "NX signature verification failed." }
+```
+
+The published hash identifies the final signed bytes. A local unsigned rebuild
+will have different bytes; the source commit and build details provide provenance
+without promising a byte-identical rebuild across compiler/SDK/signing versions.
+Use the DLL load/startup steps below only for an asset whose signature and
+compatibility have been checked. Signing does not grant modeling/export feature
+licenses required by individual NXOpen operations.
+
+For on-demand use while a signed asset is unavailable, the C# source can also
+be played through **Tools > Journal > Play**. This route was reported working
+in NX2406 in [PR #17](https://github.com/DreamEnding/NX_MCP/pull/17), without an
+NX Open author license. Create `%LOCALAPPDATA%\nx-mcp\gui-bridge.json` with the
+workspace/state configuration below, then select
+`nx_gui_bridge\NxMcpGuiBridge.cs`. Journal compilation uses a temporary assembly,
+so use that shared config location rather than a config next to the source file.
+Replay the journal to toggle the bridge off. Journal playback is on demand;
+automatic `startup` loading still uses the compiled DLL. The NX2406 report does
+not replace the full DLL acceptance matrix in [RELEASE.md](../RELEASE.md).
 
 ## CI validation layers
 
@@ -57,12 +116,15 @@ coverage of at least 78%, wheel build and isolated wheel imports), and
 `windows-csharp`. Coverage XML and the wheel remain available as artifacts.
 The default pre-commit stage excludes the pytest/mypy pre-push hooks.
 
-`windows-csharp` runs `tests/test_gui_bridge_startup.py` on hosted Windows.
+`windows-csharp` runs `tests/test_gui_bridge_startup.py` and
+`tests/test_gui_bridge_build.py` on hosted Windows.
 It requires the in-box compiler and compiles the production `BridgeHost`,
 `Json` and `Protocol` classes with the existing NX/UI test doubles. Tests
 exercise cross-process startup, descriptor ownership/probes, ACLs and cleanup.
-The harness does not compile or exercise the full executor, dispatcher or
-protocol server against NXOpen.
+The build tests exercise the actual PowerShell script and compiler with a fake
+SDK/signer: resource embedding, sign/verify ordering and failure propagation.
+These tests do not validate a Siemens signature. The harness does not compile
+or exercise the full executor, dispatcher or protocol server against NXOpen.
 
 `compatibility.yml` runs every Monday and on manual dispatch across Ubuntu,
 Windows and macOS with Python 3.10, 3.11 and 3.12. Every combination runs all
