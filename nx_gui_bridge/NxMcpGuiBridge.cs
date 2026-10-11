@@ -1203,6 +1203,17 @@ namespace NxMcp.GuiBridge
             try
             {
                 saveStatus = part.Save(BasePart.SaveComponents.False, BasePart.CloseAfterSave.False);
+                if (saveStatus != null &&
+                    (saveStatus.NumberUnsavedParts > 0 || saveStatus.NumberUnsavedObjects > 0))
+                {
+                    int nativeCode = saveStatus.NumberUnsavedParts > 0
+                        ? saveStatus.GetStatus(0)
+                        : saveStatus.GetObjectStatus(0);
+                    throw new NxToolError(
+                        "NX_API_ERROR",
+                        "The work part could not be fully saved; it remains open.",
+                        null, nativeCode, false, null);
+                }
             }
             finally
             {

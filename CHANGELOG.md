@@ -24,6 +24,9 @@
 
 ### Fixed
 
+- Both bridges reject unsaved parts or objects reported by NX's save status,
+  preserve the native error code and undo history, and keep the part open
+  when save-before-close fails.
 - GUI restart acceptance confirms the original NX process exited and rejects
   changed NX installations, file builds, releases or candidate revisions.
 - Restart JUnit records candidate/runtime provenance and the acceptance run prefix.

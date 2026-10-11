@@ -163,10 +163,59 @@ def test_save_status_is_disposed(executor, monkeypatch):
     monkeypatch.setattr(
         executor.session.Parts.Work,
         "Save",
-        lambda *args: SimpleNamespace(Dispose=lambda: disposed.append(True)),
+        lambda *args: SimpleNamespace(
+            NumberUnsavedParts=0,
+            NumberUnsavedObjects=0,
+            Dispose=lambda: disposed.append(True),
+        ),
     )
     executor.execute("nx_save_part", {})
     assert disposed == [True]
+
+
+@pytest.mark.parametrize("method", ["nx_save_part", "nx_close_part"])
+@pytest.mark.parametrize("unsaved_parts,unsaved_objects", [(1, 0), (0, 1), (1, 1)])
+def test_failed_save_keeps_part_open_and_undo_available(
+    executor, monkeypatch, method, unsaved_parts, unsaved_objects
+):
+    from types import SimpleNamespace
+
+    part = executor.session.Parts.Work
+    sketch = executor.execute("nx_create_sketch", {})["object"]
+    disposed = []
+
+    def part_error(index):
+        assert index == 0 and unsaved_parts > 0 and not disposed
+        return 12345
+
+    def object_error(index):
+        assert index == 0 and unsaved_objects > 0 and not disposed
+        return 67890
+
+    monkeypatch.setattr(
+        part,
+        "Save",
+        lambda *args: SimpleNamespace(
+            NumberUnsavedParts=unsaved_parts,
+            NumberUnsavedObjects=unsaved_objects,
+            GetStatus=part_error,
+            GetObjectStatus=object_error,
+            Dispose=lambda: disposed.append(True),
+        ),
+    )
+
+    with pytest.raises(NXToolError) as caught:
+        executor.execute(method, {})
+
+    assert caught.value.code == "NX_API_ERROR"
+    assert caught.value.nx_code == (12345 if unsaved_parts else 67890)
+    assert not caught.value.retryable
+    assert disposed == [True]
+    assert executor.session.Parts.Work is part
+    assert not hasattr(part, "close_args")
+    assert sketch in executor.execute("nx_list_sketches", {})["objects"]
+    executor.execute("nx_undo", {})
+    assert executor.session.undo_to_marks == [1]
 
 
 def test_descriptor_publish_failure_cleans_up(executor, tmp_path, monkeypatch):

@@ -327,6 +327,18 @@ class NXOpenExecutor:
                 self.nxopen.BasePart.SaveComponents.FalseValue,
                 self.nxopen.BasePart.CloseAfterSave.FalseValue,
             )
+            if save_status is not None and (
+                save_status.NumberUnsavedParts or save_status.NumberUnsavedObjects
+            ):
+                raise NXToolError(
+                    "NX_API_ERROR",
+                    "The work part could not be fully saved; it remains open.",
+                    nx_code=(
+                        save_status.GetStatus(0)
+                        if save_status.NumberUnsavedParts
+                        else save_status.GetObjectStatus(0)
+                    ),
+                )
         finally:
             if save_status is not None:
                 save_status.Dispose()

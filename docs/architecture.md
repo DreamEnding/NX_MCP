@@ -76,7 +76,11 @@ reject unknown, stale, or wrong-kind IDs instead of guessing by display name.
 Model mutations are serialized. Each mutation creates a visible undo mark and
 rolls back to it when execution fails. Successful marks are tracked so
 `nx_undo` affects the last NX MCP mutation rather than an unrelated user
-operation; saving clears MCP's tracked undo history. Undo records are removed
+operation; successful saving clears MCP's tracked undo history. A save status
+reporting unsaved parts or objects fails with `NX_API_ERROR` and the first native
+error code. The part stays open and its tracked undo history is preserved,
+including when saving was requested by `nx_close_part(save=True)`.
+Undo records are removed
 only after native undo succeeds; switching work parts clears tracked history. Builders are destroyed from
 `finally` blocks. File operations are independently confined to the configured
 workspace on both sides of the process boundary. Save also validates the
