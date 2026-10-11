@@ -1,246 +1,263 @@
-# NX MCP Server
+# NX MCP
 
-NX MCP is a local Model Context Protocol server for Siemens NX automation. The
-`0.2.0.dev0` line replaces the unverified direct-attach design with two explicit
-processes:
+**Connect MCP clients to Siemens NX for local CAD automation.**
 
-```text
-MCP client <--stdio--> Python sidecar <--authenticated loopback JSON-RPC--> NX bridge <--NXOpen--> NX
+[![CI](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+**English** · [简体中文](README.zh-CN.md)
+
+[Quick start](#quick-start) · [Tools](#tools) · [Example workflow](#example-workflow) · [Documentation](#documentation)
+
+NX MCP exposes 16 typed tools for creating parts, drawing sketches, extruding
+solids, inspecting model objects and exporting STEP. A Python MCP server runs
+outside NX; a local bridge executes NXOpen calls inside the NX process.
+
+> **Development preview — `0.2.0.dev0`.** Historical validation covers Python
+> batch mode on NX2506 and the C# GUI bridge on NX2206. Release acceptance for
+> the same clean candidate on both environments is still pending.
+> See [capabilities and validation](#capabilities-and-validation).
+
+## How it works
+
+```mermaid
+flowchart LR
+    Client["MCP client"] -->|stdio| Sidecar["Python sidecar"]
+    Sidecar -->|"Authenticated loopback JSON-RPC"| Bridge["NX bridge: Python or C#"]
+    Bridge -->|"NXOpen on the main thread"| NX["Siemens NX"]
 ```
 
-The sidecar can start without NX. Tool calls fail with `NX_BRIDGE_UNAVAILABLE`
-until an NX journal starts the bridge.
+The sidecar handles tool schemas, input validation and MCP responses. The bridge
+owns the NX session, object references, undo marks and model operations. The
+sidecar can start without NX; CAD calls require a running bridge.
 
-## Current status
+| Bridge | Use case | Documented runtime |
+| --- | --- | --- |
+| **C# GUI** | Model in an open NX window; the UI remains available between calls | NX2206 |
+| **Python batch** | Run an explicitly enabled, blocking journal loop | NX2506 |
 
-The sidecar, bridge protocol, input/output schemas, workspace confinement, and
-core workflow have automated coverage. The Python bridge passed the documented
-20-run batch workflow on Siemens NX 2506 (`ugraf` 2506.4021) on 2026-08-21.
-It remains opt-in while a non-blocking NX GUI event pump is validated; the
-bundled Python Journal runner is intentionally batch-only. The safety-hardening
-changes have local regression coverage. A development-tree M1 run on 2026-09-30
-passed a fresh 20-iteration NX2506 batch loop, all 16 tools, negative cases and
-process restart. Release still requires the same clean candidate on both
-Python batch/NX2506 and C# GUI/NX2206; see [M1 status](docs/m1-status.md).
+Both bridges expose the same default tool contract. Use **one bridge per state
+directory**. See [architecture](docs/architecture.md) for the protocol and
+[GUI bridge setup](docs/gui-bridge.md) for scheduling and deployment details.
 
-The default `tools/list` exposes only these 16 tools:
+## Quick start
 
-- Status: `nx_status`
-- Files: `nx_create_part`, `nx_open_part`, `nx_save_part`, `nx_close_part`, `nx_export_step`
-- Queries: `nx_list_sketches`, `nx_list_bodies`, `nx_list_features`
-- Sketch: `nx_create_sketch`, `nx_sketch_line`, `nx_sketch_rectangle`, `nx_finish_sketch`
-- Modeling: `nx_extrude`
-- Recovery/view: `nx_undo`, `nx_fit_view`
+### 1. Install the sidecar
 
-The 34 old tools outside the certified surface remain unverified and hidden by
-default. `NX_MCP_ENABLE_EXPERIMENTAL=1` registers them through the bridge;
-Journal tools additionally require `NX_MCP_ENABLE_JOURNAL=1`.
-
-## Agent modeling workflow
-
-The canonical [NX modeling skill](skills/nx-modeling/SKILL.md) explains discovery,
-part ownership, units, sketch/extrude sequencing, result checks, and recovery.
-It composes existing tools; it does not add permissions or replace code-enforced
-safety checks. Read it from this checkout; no global skill installation or
-agent-directory copies are created automatically.
-
-### Capabilities and validation
-
-"Implemented", "default", "locally tested", and "real-NX accepted" are separate
-claims. The historical target is native NX 2506 (`ugraf` 2506.4021), batch mode;
-there is no blanket certification of every tool or failure branch.
-
-| Capability | Availability | Local evidence | Current real-runtime boundary |
-| --- | --- | --- | --- |
-| Rectangle/sketch/extrude, queries, STEP, undo, save/reopen | Default tools | Automated core workflow tests | Development-tree NX2506 batch loop passed 2026-09-30; clean release-candidate matrix pending |
-| Native work-part units in `nx_status` | Both bridges implemented; default status field | Unit/compatibility tests, status-output parity, C# build | Metric/inch MCP save/reopen passed on development-tree Python/NX2506 on 2026-10-02; GUI runtime pending |
-| Other default-tool branches, including sketch lines | Default tools | Automated tests | Only scenarios explicitly recorded in the acceptance guide are accepted |
-| Authentication, workspace boundaries, stale/wrong-kind IDs | Enforced by default | Boundary and fake-NX tests | Development-tree NX2506 negative cases passed 2026-09-30; clean release-candidate matrix pending |
-| Uncertain execution and forced rollback failure | Enforced recovery rules | Local fault injection | No real-NX fault-injection acceptance claimed |
-| Bridge/process restart | Existing lifecycle | Automated bridge tests | Development-tree Python/NX2506 process restart passed 2026-09-30; GUI and clean release-candidate matrix pending |
-| Interactive GUI scheduling | C# add-in in `nx_gui_bridge/`, loaded on demand | Protocol checks against the live add-in | NX2206 acceptance only (2026-09-18, re-validated 2026-09-20); see [GUI bridge](docs/gui-bridge.md) |
-| Legacy tools / arbitrary Journals | Disabled by default | Mock-NX coverage only | Unverified; explicit opt-in is not certification |
-| STEP-to-USD sample validation | Separate example, not MCP | Unit tests and opt-in OpenUSD checker fixtures | Fresh NX STEP-to-USD chain remains pending |
-
-See [real NX evidence](docs/real-nx-validation.md) for dates and exact coverage.
-`nx_status.bridge_implementation` identifies `python_batch` or `csharp_gui`.
-The sidecar reports `unknown` for an older protocol-v1 bridge that omits this
-field; update that bridge before collecting release evidence.
-`nx_status.units` reports the active work part's native length unit (`mm` or
-`inch`), which sketch coordinates and extrusion distances also use. It is
-`null` without a work part or when an older bridge omits units; confirm units
-before using dimensions in that case. All 16 tools publish `readOnlyHint` and
-`destructiveHint`; these hints describe operations, while workspace and recovery
-rules enforce them. See [M2 status](docs/m2-status.md) for validation and the
-remaining measurement work.
-Session object IDs are not permanent asset IDs. Saving/closing the work part
-must not be described as saving/closing all assembly components.
-
-### Independent STEP-to-USD validation
-
-The [USD validation guide](docs/usd-validation.md) runs a small acceptance script
-in a separate Python 3.12 converter environment. It verifies the STEP block from
-this run, its converted mesh, units, world-space dimensions, and dependencies.
-Neither the NX interpreter nor the sidecar needs `usd-convert-cad` or `pxr`.
-No `nx_export_usd` tool, SDK/schema change, or default CI dependency is introduced.
-
-## MCP SDK v2 support
-
-The sidecar now uses the official Python SDK `mcp>=2.2,<3` and
-`pydantic>=2.12,<3`, with Python 3.10+ retained. `MCPServer` replaces the SDK's
-old `FastMCP` class; this is not a migration to the separate FastMCP package.
-Modern clients use MCP `2026-07-28` discovery over stdio, while initialize-based
-clients remain supported. The smoke client negotiates automatically.
-
-Default tools, JSON field names on the wire, existing NX error codes, and the
-internal NX bridge protocol v1 remain unchanged. The SDK major version is
-independent of this project's `0.2.0.dev0` release gate. See
-[MCP SDK v2 migration](docs/migration-mcp-sdk-2.md) for setup and compatibility.
-
-## Requirements
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development and evidence requirements,
-[SECURITY.md](SECURITY.md) for private vulnerability reporting, and
-[RELEASE.md](RELEASE.md) for the `0.2.0` gate. Changes are recorded in
-[CHANGELOG.md](CHANGELOG.md).
-
-- Windows with a local native Siemens NX installation (validated on NX 2506)
-- Python 3.10+
-- The package installed in the sidecar interpreter
-- An NX journal that can import `nx_mcp` (the bundled Journal examples load
-  the checkout's `src` directory automatically; the NX side has no `mcp` or
-  `pydantic` dependency)
-- A dedicated test/project directory configured as `NX_MCP_WORKSPACE`
-
-Install the sidecar and development dependencies in a dedicated environment
-from PowerShell 7 (do not reuse an interpreter still running SDK v1):
+You need **Windows**, a local native **Siemens NX** installation, **Python 3.10+**,
+**PowerShell 7**, Git and an MCP client that supports stdio servers. Use a
+disposable workspace for your first run.
 
 ```powershell
-$env:NO_PROXY = "localhost,127.0.0.1"
+git clone https://github.com/DreamEnding/NX_MCP.git
+Set-Location NX_MCP
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install -e .
+New-Item -ItemType Directory -Force 'C:\NX_MCP_WORKSPACE' | Out-Null
 ```
 
-Use the absolute path to `.venv/Scripts/python.exe` as the MCP client's
-`command` below, or activate this environment before using `python` commands.
+Run the following commands from the repository root. Replace the sample NX,
+checkout and user paths with your own. If your network requires a proxy,
+configure it before cloning or installing packages.
 
-## Internal feasibility run
+### 2. Start one NX bridge
 
-1. Set `NX_MCP_WORKSPACE` to a disposable directory.
-2. For the target-build feasibility test only, set
-   `NX_MCP_ALLOW_UNVERIFIED_PYTHON_BRIDGE=1` in the NX environment.
-3. Set `NX_MCP_BRIDGE_STOP_FILE` to a new path inside the workspace, then run
-   `examples/start_nx_bridge.py` as an NX journal. The canonical invocation
-   is `run_journal.exe <journal-file>`, with no extra switches. The journal
-   pumps requests on NX's main thread and writes an authenticated session
-   descriptor to `%LOCALAPPDATA%\nx-mcp\bridge.json`.
-4. Configure the MCP client to launch the sidecar:
+#### Option A — Interactive C# bridge
+
+Build against your installed NX assemblies:
+
+```powershell
+.\nx_gui_bridge\build.ps1 -NxRoot 'C:\Program Files\Siemens\NX2206'
+```
+
+Create `nx_gui_bridge/build/gui-bridge.json` next to the generated DLL:
+
+```json
+{
+  "workspace": "C:\\NX_MCP_WORKSPACE",
+  "state_dir": "C:\\Users\\<you>\\.nx-mcp"
+}
+```
+
+In NX, choose **File → Execute → NX Open** (`Ctrl+U`) and load
+`nx_gui_bridge/build/NxMcpGuiBridge.dll`. Running it again stops the bridge.
+Environment variables override the JSON configuration.
+
+Loading an unsigned DLL requires an NX Open .NET author license
+(`dotnet_author`); otherwise sign it with NX's `SignDotNet.exe`.
+See the [GUI bridge guide](docs/gui-bridge.md) for signing, startup loading and
+client AppData isolation.
+
+#### Option B — Python batch bridge
+
+In a dedicated PowerShell terminal, set the bridge environment and run the
+bundled journal through NX's journal runner:
+
+```powershell
+$env:NX_MCP_WORKSPACE = 'C:\NX_MCP_WORKSPACE'
+$env:NX_MCP_STATE_DIR = Join-Path $env:USERPROFILE '.nx-mcp'
+$env:NX_MCP_ALLOW_UNVERIFIED_PYTHON_BRIDGE = '1'
+$env:NX_MCP_BRIDGE_STOP_FILE = Join-Path $env:NX_MCP_WORKSPACE "bridge-$([guid]::NewGuid()).stop"
+Write-Output "Stop the bridge by creating: $env:NX_MCP_BRIDGE_STOP_FILE"
+& 'C:\Program Files\Siemens\NX2506\NXBIN\run_journal.exe' (Join-Path (Get-Location) 'examples/start_nx_bridge.py')
+```
+
+This command keeps running while the bridge pumps requests. To stop it, create
+the printed stop-file path from another terminal using `New-Item -ItemType File`.
+The journal loads this checkout's `src/` automatically; the default Python bridge
+needs no MCP or Pydantic installation inside NX. This runner is batch-only.
+
+### 3. Configure your MCP client
+
+Use the virtual environment's **absolute Python path**. The workspace and state
+directory must match the bridge configuration, including the real username in
+place of `<you>`.
 
 ```json
 {
   "mcpServers": {
     "nx-mcp": {
-      "command": "python",
+      "command": "C:\\src\\NX_MCP\\.venv\\Scripts\\python.exe",
       "args": ["-m", "nx_mcp.server"],
       "env": {
-        "NX_MCP_WORKSPACE": "D:\\NX_MCP_WORKSPACE"
+        "NX_MCP_WORKSPACE": "C:\\NX_MCP_WORKSPACE",
+        "NX_MCP_STATE_DIR": "C:\\Users\\<you>\\.nx-mcp"
       }
     }
   }
 }
 ```
 
-5. Run the real-NX acceptance loop from an external PowerShell 7 terminal:
+Reload the client and call `nx_status`. A connected bridge returns
+`connected: true`, its NX version and `bridge_implementation` (`python_batch`
+or `csharp_gui`). With no work part, `active_part` and `units` are `null`.
+
+If you receive `NX_BRIDGE_UNAVAILABLE`, check that the bridge is running and
+that both processes use the same absolute `NX_MCP_STATE_DIR`.
+
+## Tools
+
+The default `tools/list` contains exactly **16 tools**:
+
+| Area | Tools |
+| --- | --- |
+| Session | `nx_status` |
+| Part files | `nx_create_part`, `nx_open_part`, `nx_save_part`, `nx_close_part` |
+| Export | `nx_export_step` |
+| Inspection | `nx_list_sketches`, `nx_list_bodies`, `nx_list_features` |
+| Sketches | `nx_create_sketch`, `nx_sketch_line`, `nx_sketch_rectangle`, `nx_finish_sketch` |
+| Modeling | `nx_extrude` |
+| Recovery and view | `nx_undo`, `nx_fit_view` |
+
+Tools publish typed inputs, structured results and MCP operation hints. Geometry
+inputs use the work part's **native units**, reported by `nx_status.units` as
+`mm` or `inch`. If units are missing or `null`, confirm them before modeling.
+
+The 34 legacy tools are hidden and unverified. Their opt-in settings are
+explained in the [0.1 migration guide](docs/migration-0.2.md); the C# bridge does
+not support them. STEP-to-USD conversion is a [separate validation example](docs/usd-validation.md),
+not an MCP tool. Measurement APIs remain [proposals](docs/inspection-contract.md).
+
+## Example workflow
+
+Create a **20 × 10 × 12.5 mm** block in a new part. These are MCP tool calls,
+not a Python script; pass each row's arguments through your client.
+Use fresh output paths and confirm the intended work part before making changes.
+
+| Step | Tool | Arguments or result to retain |
+| --- | --- | --- |
+| 1 | `nx_status` | Check the active part and connection |
+| 2 | `nx_create_part` | `{"path":"demo/block.prt","units":"mm"}` |
+| 3 | `nx_create_sketch` | `{"plane":"XY"}`; retain `object.id` as `sketch_id` |
+| 4 | `nx_sketch_rectangle` | `{"sketch_id":"<id>","corner1":{"x":0,"y":0},"corner2":{"x":20,"y":10}}` |
+| 5 | `nx_finish_sketch` | `{"sketch_id":"<id>"}` |
+| 6 | `nx_extrude` | `{"sketch_id":"<id>","distance":12.5}` |
+| 7 | `nx_list_bodies`, `nx_list_features` | Check the returned body and feature |
+| 8 | `nx_save_part` | `{}` |
+| 9 | `nx_export_step` | `{"path":"demo/block.stp"}` |
+
+Replace `<id>` with the actual sketch ID from step 3. The example uses XY;
+XZ/YZ line and rectangle coordinate handling currently needs correction.
+Object lists verify model structure, not exact dimensional measurements.
+The [NX modeling skill](skills/nx-modeling/SKILL.md) describes unit handling,
+part ownership, verification and recovery for agents.
+
+## Operational boundaries
+
+- **Files:** pass paths relative to `NX_MCP_WORKSPACE`. Both processes validate
+  file boundaries. Geometry commands operate on the current work part, so
+  establish the target part before editing.
+- **Save and close:** operate on the work part, not its whole assembly tree.
+  An incomplete save returns an error, preserves undo history and prevents
+  save-before-close from discarding the part.
+- **Object IDs:** are session references, not permanent asset IDs. Query fresh
+  IDs after undo, failed-mutation rollback or closing/reopening a part.
+- **Recovery:** never automatically replay a mutation whose
+  `details.execution_state` is `unknown`. Inspect the model first. A rollback
+  failure blocks writes until explicit recovery; see the [recovery contract](docs/architecture.md#object-and-operation-lifecycle).
+- **Local access:** the bridge binds to `127.0.0.1` and authenticates requests.
+  Keep the state directory private: `bridge.json` contains the session token.
+  Remote exposure and Teamcenter-managed sessions are outside the current scope.
+
+## Capabilities and validation
+
+Default availability, automated tests and real-NX acceptance are separate claims.
+
+| Area | Evidence and remaining boundary |
+| --- | --- |
+| Default modeling workflow | Development-tree NX2506 batch acceptance; clean release-candidate matrix pending |
+| Interactive GUI bridge | Historical NX2206 acceptance; matching current-candidate acceptance pending |
+| Native units | Metric/inch save/reopen verified on development-tree Python/NX2506; GUI runtime validation pending |
+| Failure and recovery paths | Local fault-injection tests; no blanket real-NX acceptance of every error branch |
+| Legacy tools and USD conversion | Outside the default tool surface; separate validation requirements |
+
+See [real-NX validation](docs/real-nx-validation.md), [M1 status](docs/m1-status.md),
+[M2 status](docs/m2-status.md) and the [release checklist](RELEASE.md) for exact
+builds, dates and acceptance criteria. A fake-NX test or successful C# build does
+not certify native CAD behavior.
+
+## Development
+
+Use the repository virtual environment from PowerShell 7:
 
 ```powershell
-python -m nx_mcp.real_smoke --workspace D:\NX_MCP_WORKSPACE --iterations 20 --run-prefix acceptance
-```
-
-6. Create the configured stop file when finished; the journal stops the bridge
-   cleanly.
-
-Do not use production parts for this test. The batch bridge is not evidence of
-interactive GUI responsiveness; use a non-blocking NX UI scheduler or the
-agreed minimal C# NX-side bridge before enabling an interactive pilot.
-
-## Interactive NX GUI bridge
-
-For live modeling in an open NX window, build and load the C# add-in in
-`nx_gui_bridge/` instead of the batch journal. It serves the same bridge
-protocol, so the sidecar and MCP tools are unchanged. See
-[GUI bridge](docs/gui-bridge.md) for the build, configuration, limits and the
-NX2206 validation record.
-
-`NX_MCP_STATE_DIR` moves `bridge.json` out of `%LOCALAPPDATA%\nx-mcp`. Set it
-on both sides when an MSIX-packaged MCP client and NX see different AppData
-folders. It must be an absolute path, so that the NX bridge and the sidecar
-name the same file. `bridge.json` carries the session token, so choose a
-directory only your account can read; the C# add-in additionally writes the
-descriptor with a rule that allows your account alone. Both bridges also keep a
-`bridge.lock` there and take it while they start, so two NX processes sharing a
-state directory cannot both claim the descriptor: the second one refuses to
-start while the first still answers on its port.
-
-## Security model
-
-- IPC binds only to `127.0.0.1` on a random port and requires a random 256-bit
-  session token.
-- Every file argument is relative to `NX_MCP_WORKSPACE`; traversal, absolute
-  paths, and resolved links outside the workspace are rejected.
-- Journal execution and all 34 legacy tools are disabled by default. Both the
-  sidecar and NX bridge must receive the opt-in environment flags.
-- Object IDs are opaque and valid only for the current part session. Undo and
-  failed mutation rollback invalidate references; query new IDs before use.
-- Save validates the active part's path; save and close affect only the work
-  part, not its assembly tree. A failed rollback blocks writes until recovery.
-- Timeout/disconnect errors distinguish `not_started` from `unknown` execution.
-  Never automatically replay an uncertain mutation; inspect the model first.
-
-## Local quality gates
-
-The ordinary suite does not require NX. Install the Git hooks once, then use
-the same checks as CI:
-
-```powershell
+.\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
 python -m pre_commit install --install-hooks
 python -m pre_commit run --all-files
-python -m pytest -q -p no:cacheprovider -m "not real_nx" --basetemp .pytest-tmp
+python -m mypy src/nx_mcp
+python -m pytest -q -p no:cacheprovider -m "not real_nx" --cov=nx_mcp --cov-branch --cov-fail-under=78
 ```
 
-The pre-commit hook runs file and style checks. The pre-push hook runs the
-non-real-NX pytest suite and the sidecar mypy gate. Tests marked `legacy` cover
-the opt-in 0.1 surface; tests marked `fake_nx` do not validate NXOpen itself.
-Hosted CI runs the core suite across supported Python and OS combinations,
-runs legacy mock-NX tests separately, and enforces at least 78% branch
-coverage in its canonical Ubuntu/Python 3.12 coverage job.
+Ordinary tests do not require NX. CI runs Python tests, coverage, packaging,
+contract parity and isolated Windows C# harnesses. Real-NX acceptance runs
+separately on a dedicated runner. See [contributing](CONTRIBUTING.md) before
+adding tools or collecting release evidence.
 
-Real NX acceptance is intentionally separate. Dispatch
-`.github/workflows/real-nx.yml` from a dedicated self-hosted Windows runner
-labelled `self-hosted`, `windows`, and `nx`, with `NX_RUN_JOURNAL` set to the
-absolute path of `run_journal.exe`.
+## Documentation
 
-See [architecture](docs/architecture.md), [0.1 migration](docs/migration-0.2.md),
-[MCP SDK v2 migration](docs/migration-mcp-sdk-2.md),
-and [real NX validation](docs/real-nx-validation.md) for implementation and
-release gates.
+| Guide | What it covers |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Process boundaries, protocol, object lifecycle and recovery |
+| [GUI bridge](docs/gui-bridge.md) | C# build, configuration, loading and NX2206 evidence |
+| [Real-NX validation](docs/real-nx-validation.md) | Batch setup, acceptance commands and runtime evidence |
+| [NX modeling skill](skills/nx-modeling/SKILL.md) | Agent workflow using the existing tools |
+| [0.1 → 0.2 migration](docs/migration-0.2.md) | Tool and parameter changes |
+| [MCP SDK v2 migration](docs/migration-mcp-sdk-2.md) | Official Python SDK dependencies and client compatibility |
+| [STEP → USD validation](docs/usd-validation.md) | Independent conversion and geometry checks |
+| [Inspection contract](docs/inspection-contract.md) | Implemented units and proposed measurement APIs |
 
-## Star History
+[Changelog](CHANGELOG.md) · [Release checklist](RELEASE.md) · [Security policy](SECURITY.md) · [MIT license](LICENSE)
 
-The chart updates automatically when this repository receives a star and daily
-at 04:37 UTC (12:37 Asia/Shanghai). Changes to the Star History workflow on
-`master` also trigger an update; manual runs remain available in GitHub Actions.
-Daily refreshes reconcile missed events and removed stars. GitHub may delay
-scheduled runs, so the chart is not a real-time counter. Charts are published
-to the dedicated `star-history` branch without changing `master`.
+<details>
+<summary>Star history</summary>
 
 <picture>
-  <source
-    media="(prefers-color-scheme: dark)"
-    srcset="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history-dark.svg"
-  />
-  <img
-    alt="Star History Chart"
-    src="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg"
-  />
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history-dark.svg" />
+  <img alt="NX MCP star history" src="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg" />
 </picture>
+
+The chart is maintained on the separate `star-history` branch.
+
+</details>
