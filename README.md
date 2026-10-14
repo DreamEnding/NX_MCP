@@ -285,4 +285,4 @@ If NX MCP helps your workflow, give it a star or share your feedback in an issue
   </a>
 </p>
 
-[Explore the chart](https://star-history.com/#DreamEnding/NX_MCP&Date) · [Daily archive](https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg)
+[Explore the chart](https://star-history.com/#DreamEnding/NX_MCP&Date)

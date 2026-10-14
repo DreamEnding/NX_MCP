@@ -267,4 +267,4 @@ python -m pytest -q -p no:cacheprovider -m "not real_nx" --cov=nx_mcp --cov-bran
   </a>
 </p>
 
-[查看交互图表](https://star-history.com/#DreamEnding/NX_MCP&Date) · [查看每日归档](https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg)
+[查看交互图表](https://star-history.com/#DreamEnding/NX_MCP&Date)
