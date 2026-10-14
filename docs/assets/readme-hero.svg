@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none">
+  <title>NX MCP — Local CAD automation for Siemens NX</title>
+  <desc>A blue and cyan CAD wireframe block beside the NX MCP name. MCP connects to NXOpen for sketches, solids and STEP export.</desc>
+  <defs>
+    <linearGradient id="background" x2="1200" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#112E42"/>
+    </linearGradient>
+    <linearGradient id="top" x1="800" y1="90" x2="1070" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#2DD4BF" stop-opacity=".12"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" stroke="#7DD3FC" stroke-opacity=".06"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="360" rx="20" fill="url(#background)"/>
+  <rect width="1200" height="360" rx="20" fill="url(#grid)"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="56" y="50" width="224" height="28" rx="14" fill="#16384B"/>
+    <circle cx="74" cy="64" r="4" fill="#5EEAD4"/>
+    <text x="88" y="69" fill="#A5F3FC" font-size="12" letter-spacing="2">LOCAL CAD AUTOMATION</text>
+    <text x="52" y="170" fill="#F0F9FF" font-size="80" font-weight="700" letter-spacing="-3">NX <tspan fill="#5EEAD4">MCP</tspan></text>
+    <text x="56" y="216" fill="#CBD5E1" font-size="24">Connect your AI workflow to Siemens NX.</text>
+    <text x="56" y="260" fill="#8CA8BE" font-size="16">Sketches</text>
+    <circle cx="137" cy="255" r="2" fill="#5EEAD4"/>
+    <text x="153" y="260" fill="#8CA8BE" font-size="16">Solids</text>
+    <circle cx="216" cy="255" r="2" fill="#5EEAD4"/>
+    <text x="232" y="260" fill="#8CA8BE" font-size="16">STEP export</text>
+    <path d="M56 300H590" stroke="#284456"/>
+    <text x="56" y="325" fill="#7895AC" font-size="12" letter-spacing="2">MCP CLIENT  /  LOCAL BRIDGE  /  NXOPEN</text>
+  </g>
+  <g stroke-linejoin="round">
+    <path d="M730 255 940 145 1150 255 940 350Z" stroke="#386076" stroke-dasharray="4 7"/>
+    <path d="M800 140 940 65 1080 140 940 215Z" fill="url(#top)" stroke="#67E8F9" stroke-width="2"/>
+    <path d="M800 140V250L940 325V215Z" fill="#38BDF8" fill-opacity=".08" stroke="#38BDF8" stroke-width="2"/>
+    <path d="M940 215 1080 140V250L940 325Z" fill="#2DD4BF" fill-opacity=".12" stroke="#5EEAD4" stroke-width="2"/>
+    <path d="M800 250 940 175 1080 250M940 175V65" stroke="#67E8F9" stroke-opacity=".35" stroke-dasharray="5 6"/>
+    <path d="M785 128 925 53M785 121V135M925 46V60" stroke="#8CA8BE"/>
+    <path d="M1102 146V250M1095 146H1109M1095 250H1109" stroke="#8CA8BE"/>
+    <circle cx="940" cy="215" r="5" fill="#CCFBF1"/>
+  </g>
+</svg>

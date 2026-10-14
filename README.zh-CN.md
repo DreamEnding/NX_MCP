@@ -1,21 +1,36 @@
-# NX MCP
+<p align="center">
+  <img src="docs/assets/readme-hero.svg" width="1200" alt="NX MCP — Siemens NX 本地 CAD 自动化" />
+</p>
 
-**通过 MCP 客户端连接 Siemens NX，实现本地 CAD 自动化。**
+<h1 align="center">NX MCP</h1>
 
-[![CI](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center"><strong>通过 MCP 客户端连接 Siemens NX，实现本地 CAD 自动化。</strong></p>
 
-[English](README.md) · **简体中文**
+<p align="center">
+  <a href="https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml"><img src="https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.10+" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-14B8A6" alt="MIT license" /></a>
+  <a href="https://github.com/DreamEnding/NX_MCP/stargazers"><img src="https://img.shields.io/github/stars/DreamEnding/NX_MCP?style=flat&amp;color=38BDF8" alt="GitHub stars" /></a>
+</p>
 
-[快速开始](#快速开始) · [工具列表](#工具列表) · [建模示例](#建模示例) · [文档导航](#文档导航)
+<p align="center"><a href="README.md">English</a> · <strong>简体中文</strong></p>
+
+<p align="center"><a href="#快速开始">快速开始</a> · <a href="#工具列表">工具列表</a> · <a href="#建模示例">建模示例</a> · <a href="#文档导航">文档导航</a></p>
+
+---
 
 NX MCP 提供 16 个具有类型定义的工具，用于创建零件、绘制草图、拉伸实体、查询模型对象和导出 STEP。
 Python MCP 服务在 NX 进程外运行，本地桥接程序在 NX 进程内执行 NXOpen 调用。
 
+> [!IMPORTANT]
+>
 > **开发预览版 — `0.2.0.dev0`。** 历史验证覆盖 NX2506 上的 Python 批处理桥和
 > NX2206 上的 C# GUI 桥。同一干净候选版本在两种环境中的发布验收仍待完成。
 > 详见[能力与验证状态](#能力与验证状态)。
+
+| 绘制与建模 | 检查与恢复 | 保存与导出 |
+| :--- | :--- | :--- |
+| 创建草图、绘制直线与矩形、拉伸实体。 | 查询实体和特征，撤销操作并适配视图。 | 打开和保存 NX 零件，导出 STEP 文件。 |
 
 ## 工作原理
 
@@ -57,7 +72,8 @@ New-Item -ItemType Directory -Force 'C:\NX_MCP_WORKSPACE' | Out-Null
 
 ### 2. 启动一种 NX 桥接程序
 
-#### 方案 A — C# 交互式桥接
+<details>
+<summary><strong>方案 A — C# 交互式桥接</strong></summary>
 
 使用本机 NX 程序集编译：
 
@@ -82,7 +98,10 @@ New-Item -ItemType Directory -Force 'C:\NX_MCP_WORKSPACE' | Out-Null
 否则需使用 NX 的 `SignDotNet.exe` 签名。
 签名、启动时加载和客户端 AppData 隔离问题详见[GUI 桥接指南](docs/gui-bridge.md)。
 
-#### 方案 B — Python 批处理桥接
+</details>
+
+<details>
+<summary><strong>方案 B — Python 批处理桥接</strong></summary>
 
 在专用 PowerShell 终端中设置桥接环境，然后通过 NX Journal Runner 运行示例脚本：
 
@@ -98,6 +117,8 @@ Write-Output "Stop the bridge by creating: $env:NX_MCP_BRIDGE_STOP_FILE"
 命令会持续运行并处理请求。停止时，在另一个终端使用 `New-Item -ItemType File` 创建输出中显示的停止文件。
 Journal 会自动加载当前仓库的 `src/`；默认 Python 桥无需在 NX 内安装 MCP 或 Pydantic。
 该运行方式仅用于批处理。
+
+</details>
 
 ### 3. 配置 MCP 客户端
 
@@ -232,14 +253,18 @@ python -m pytest -q -p no:cacheprovider -m "not real_nx" --cov=nx_mcp --cov-bran
 
 [变更记录](CHANGELOG.md) · [发布检查清单](RELEASE.md) · [安全策略](SECURITY.md) · [MIT 许可证](LICENSE)
 
-<details>
-<summary>Star 历史</summary>
+## Star 历史
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history-dark.svg" />
-  <img alt="NX MCP Star 历史" src="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg" />
-</picture>
+如果 NX MCP 对你有帮助，欢迎点亮 Star，或通过 Issue 分享使用反馈。
 
-图表在独立的 `star-history` 分支维护。
+<p align="center">
+  <a href="https://star-history.com/#DreamEnding/NX_MCP&amp;Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date&amp;theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date" />
+      <img width="800" alt="NX MCP GitHub star history" src="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date" />
+    </picture>
+  </a>
+</p>
 
-</details>
+[查看交互图表](https://star-history.com/#DreamEnding/NX_MCP&Date) · [查看每日归档](https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg)

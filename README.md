@@ -1,23 +1,38 @@
-# NX MCP
+<p align="center">
+  <img src="docs/assets/readme-hero.svg" width="1200" alt="NX MCP — Local CAD automation for Siemens NX" />
+</p>
 
-**Connect MCP clients to Siemens NX for local CAD automation.**
+<h1 align="center">NX MCP</h1>
 
-[![CI](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml/badge.svg)](https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+<p align="center"><strong>Connect MCP clients to Siemens NX for local CAD automation.</strong></p>
 
-**English** · [简体中文](README.zh-CN.md)
+<p align="center">
+  <a href="https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml"><img src="https://github.com/DreamEnding/NX_MCP/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.10+" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-14B8A6" alt="MIT license" /></a>
+  <a href="https://github.com/DreamEnding/NX_MCP/stargazers"><img src="https://img.shields.io/github/stars/DreamEnding/NX_MCP?style=flat&amp;color=38BDF8" alt="GitHub stars" /></a>
+</p>
 
-[Quick start](#quick-start) · [Tools](#tools) · [Example workflow](#example-workflow) · [Documentation](#documentation)
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="#tools">Tools</a> · <a href="#example-workflow">Example workflow</a> · <a href="#documentation">Documentation</a></p>
+
+---
 
 NX MCP exposes 16 typed tools for creating parts, drawing sketches, extruding
 solids, inspecting model objects and exporting STEP. A Python MCP server runs
 outside NX; a local bridge executes NXOpen calls inside the NX process.
 
+> [!IMPORTANT]
+>
 > **Development preview — `0.2.0.dev0`.** Historical validation covers Python
 > batch mode on NX2506 and the C# GUI bridge on NX2206. Release acceptance for
 > the same clean candidate on both environments is still pending.
 > See [capabilities and validation](#capabilities-and-validation).
+
+| Sketch & model | Inspect & recover | Save & exchange |
+| :--- | :--- | :--- |
+| Create sketches, draw lines and rectangles, extrude solids. | Query bodies and features, undo operations and fit the view. | Open and save NX parts, export STEP files. |
 
 ## How it works
 
@@ -63,7 +78,8 @@ configure it before cloning or installing packages.
 
 ### 2. Start one NX bridge
 
-#### Option A — Interactive C# bridge
+<details>
+<summary><strong>Option A — Interactive C# bridge</strong></summary>
 
 Build against your installed NX assemblies:
 
@@ -89,7 +105,10 @@ Loading an unsigned DLL requires an NX Open .NET author license
 See the [GUI bridge guide](docs/gui-bridge.md) for signing, startup loading and
 client AppData isolation.
 
-#### Option B — Python batch bridge
+</details>
+
+<details>
+<summary><strong>Option B — Python batch bridge</strong></summary>
 
 In a dedicated PowerShell terminal, set the bridge environment and run the
 bundled journal through NX's journal runner:
@@ -107,6 +126,8 @@ This command keeps running while the bridge pumps requests. To stop it, create
 the printed stop-file path from another terminal using `New-Item -ItemType File`.
 The journal loads this checkout's `src/` automatically; the default Python bridge
 needs no MCP or Pydantic installation inside NX. This runner is batch-only.
+
+</details>
 
 ### 3. Configure your MCP client
 
@@ -250,14 +271,18 @@ adding tools or collecting release evidence.
 
 [Changelog](CHANGELOG.md) · [Release checklist](RELEASE.md) · [Security policy](SECURITY.md) · [MIT license](LICENSE)
 
-<details>
-<summary>Star history</summary>
+## Star History
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history-dark.svg" />
-  <img alt="NX MCP star history" src="https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg" />
-</picture>
+If NX MCP helps your workflow, give it a star or share your feedback in an issue.
 
-The chart is maintained on the separate `star-history` branch.
+<p align="center">
+  <a href="https://star-history.com/#DreamEnding/NX_MCP&amp;Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date&amp;theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date" />
+      <img width="800" alt="NX MCP GitHub star history" src="https://api.star-history.com/svg?repos=DreamEnding/NX_MCP&amp;type=Date" />
+    </picture>
+  </a>
+</p>
 
-</details>
+[Explore the chart](https://star-history.com/#DreamEnding/NX_MCP&Date) · [Daily archive](https://raw.githubusercontent.com/DreamEnding/NX_MCP/star-history/assets/star-history.svg)
