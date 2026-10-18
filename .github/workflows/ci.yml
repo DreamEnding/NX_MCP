@@ -78,6 +78,33 @@ jobs:
           name: wheel
           path: dist/*.whl
 
+  step-geometry:
+    name: independent STEP geometry checker
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # A separate job keeps the native CAD runtime out of the sidecar environment.
+      - name: Install isolated checker dependencies
+        run: python -m pip install "cadquery-ocp==7.9.3.1.1" pytest pytest-asyncio
+      - name: Test real B-rep measurement and failure paths without NX
+        env:
+          NX_MCP_STEP_CHECKER_TESTS: "1"
+        run: >-
+          python -m pytest -q -p no:cacheprovider
+          tests/test_step_validation.py tests/test_step_validation_runtime.py
+          --junitxml=step-checker.xml
+      - name: Upload checker test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: step-checker-results
+          path: step-checker.xml
+          if-no-files-found: warn
+
   windows-csharp:
     name: windows-csharp
     runs-on: windows-latest

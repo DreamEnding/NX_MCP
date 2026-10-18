@@ -4,6 +4,8 @@
 
 ### Added
 
+- Independent STEP B-rep checker for the canonical smoke block: explicit units,
+  absolute bounds, closed-solid count and volume, with isolated OCP tests in CI.
 - M2 foundation: native work-part units in `nx_status` for both bridges, with
   `null` for no part or an older bridge; unit-aware modeling guidance.
 - Explicit `readOnlyHint` and `destructiveHint` on all 16 certified MCP tools.

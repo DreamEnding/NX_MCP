@@ -136,6 +136,20 @@ jobs:
       - name: Verify reconnection with separately owned NX processes
         shell: pwsh
         run: python -m pytest -q -p no:cacheprovider -m real_nx tests/test_real_nx_restart.py::test_real_nx_client_reconnects_after_restart --junitxml="$env:NX_MCP_WORKSPACE/restart.xml"
+
+      - name: Validate exported STEP geometry in an isolated environment
+        shell: pwsh
+        run: |
+          $stepEnv = Join-Path $env:RUNNER_TEMP "nx-mcp-step-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          python -m venv $stepEnv
+          if ($LASTEXITCODE -ne 0) { throw "STEP checker environment creation failed." }
+          $stepPython = Join-Path $stepEnv 'Scripts/python.exe'
+          & $stepPython -m pip install "cadquery-ocp==7.9.3.1.1"
+          if ($LASTEXITCODE -ne 0) { throw "STEP checker dependency installation failed." }
+          $inputStep = "$env:NX_MCP_REAL_NX_RUN_PREFIX/run-01.stp"
+          & $stepPython examples/validate_step_geometry.py --workspace $env:NX_MCP_WORKSPACE --input $inputStep --output-dir step-check
+          if ($LASTEXITCODE -ne 0) { throw "Independent STEP geometry check failed." }
+
       - name: Upload allowlisted acceptance evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -146,5 +160,6 @@ jobs:
             ${{ env.NX_MCP_WORKSPACE }}/evidence.json
             ${{ env.NX_MCP_WORKSPACE }}/acceptance.xml
             ${{ env.NX_MCP_WORKSPACE }}/restart.xml
+            ${{ env.NX_MCP_WORKSPACE }}/step-check/report.json
             ${{ env.NX_MCP_WORKSPACE }}/gui-bridge-build/NxMcpGuiBridge.dll
           if-no-files-found: warn
