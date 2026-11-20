@@ -22,6 +22,11 @@ def test_workspace_rejects_paths_outside_root(tmp_path: Path, path: str):
         workspace.resolve(path)
 
 
+def test_workspace_explains_absolute_tool_path_inside_root(tmp_path: Path):
+    with pytest.raises(WorkspaceViolation, match="relative to NX_MCP_WORKSPACE"):
+        Workspace(tmp_path).resolve(str(tmp_path / "part.prt"))
+
+
 def test_workspace_accepts_absolute_path_already_resolved_inside_root(tmp_path: Path):
     workspace = Workspace(tmp_path)
     safe_path = tmp_path / "parts" / "bracket.prt"
