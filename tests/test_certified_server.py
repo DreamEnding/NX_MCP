@@ -139,6 +139,16 @@ async def test_create_part_resolves_path_inside_workspace(tmp_path: Path):
 
 
 @pytest.mark.asyncio
+async def test_export_rejects_part_before_bridge_call(tmp_path: Path):
+    bridge = RecordingBridge({})
+    async with Client(create_server(bridge, Workspace(tmp_path))) as client:
+        result = await client.call_tool("nx_export_step", {"path": "part.prt"})
+    assert result.is_error
+    assert "NX_INVALID_ARGUMENT" in result.content[0].text
+    assert bridge.calls == []
+
+
+@pytest.mark.asyncio
 async def test_file_tool_rejects_workspace_escape_before_bridge_call(tmp_path: Path):
     bridge = RecordingBridge({})
     server = create_server(bridge, Workspace(tmp_path))

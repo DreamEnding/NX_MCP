@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Annotated, Any, Literal, Protocol
 
 from mcp.server.mcpserver import MCPServer
@@ -22,7 +23,7 @@ from nx_mcp.contracts import (
     Point2D,
     StatusResult,
 )
-from nx_mcp.workspace import Workspace, WorkspaceViolation
+from nx_mcp.workspace import Workspace, WorkspaceViolation, validate_step_destination
 
 
 class BridgeCaller(Protocol):
@@ -115,7 +116,12 @@ def create_certified_server(
     @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=True))
     async def nx_export_step(path: str) -> ExportResult:
         """Export the active work part as STEP inside the configured workspace."""
-        return ExportResult(**await call("nx_export_step", {"path": resolve_path(path)}))
+        destination = resolve_path(path)
+        try:
+            validate_step_destination(Path(destination))
+        except NXToolError as error:
+            raise MCPToolError(json.dumps(error.as_dict())) from error
+        return ExportResult(**await call("nx_export_step", {"path": destination}))
 
     @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False))
     async def nx_list_sketches() -> ObjectListResult:

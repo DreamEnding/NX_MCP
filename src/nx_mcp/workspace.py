@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path, PureWindowsPath
 
+from nx_mcp.runtime import NXToolError
+
+
+def validate_step_destination(path: Path) -> None:
+    if path.suffix.lower() not in {".step", ".stp"}:
+        raise NXToolError("NX_INVALID_ARGUMENT", "STEP output must have a .step or .stp extension")
+
 
 class WorkspaceViolation(ValueError):
     """Raised when a requested path escapes the configured workspace."""

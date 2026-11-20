@@ -250,7 +250,9 @@ def test_descriptor_publish_failure_cleans_up(executor, tmp_path, monkeypatch):
     monkeypatch.setattr(module, "BridgeServer", Server)
     monkeypatch.setattr(module.BridgeDescriptor, "write", fail_write)
     with pytest.raises(OSError, match="descriptor unavailable"):
-        module.start_bridge(tmp_path, allow_unverified_threading=True)
+        module.start_bridge(
+            tmp_path, descriptor_path=tmp_path / "bridge.json", allow_unverified_threading=True
+        )
     assert events == ["start", "stop"]
     assert module._runtime is None
 

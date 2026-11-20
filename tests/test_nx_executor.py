@@ -28,6 +28,10 @@ class FakeSketch(FakeObject):
     def __init__(self, tag: int, name: str):
         super().__init__(tag, name)
         self.Feature = self
+        self.Origin = SimpleNamespace(X=0, Y=0, Z=0)
+        self.Orientation = SimpleNamespace(
+            Element=SimpleNamespace(Xx=1, Xy=0, Xz=0, Yx=0, Yy=1, Yz=0)
+        )
         self.geometry = []
         self.active = False
 
@@ -503,6 +507,42 @@ def test_export_step_replaces_an_earlier_file_with_new_output(tmp_path: Path):
     assert exported["path"] == str(destination)
     assert destination.read_text(encoding="utf-8") == "STEP MANIFOLD_SOLID_BREP"
     assert sorted(path.name for path in destination.parent.iterdir()) == ["part.log", "part.stp"]
+
+
+@pytest.mark.parametrize("name", ["part.prt", "part.log", "part"])
+def test_step_export_preserves_invalid_destination(tmp_path: Path, name: str):
+    executor = NXOpenExecutor(FakeSession(), FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    destination = tmp_path / name
+    destination.write_bytes(b"original")
+    with pytest.raises(NXToolError) as caught:
+        executor.execute("nx_export_step", {"path": str(destination)})
+    assert caught.value.code == "NX_INVALID_ARGUMENT"
+    assert destination.read_bytes() == b"original"
+
+
+@pytest.mark.parametrize(
+    ("plane", "axes", "expected"),
+    [
+        ("XY", (1, 0, 0, 0, 1, 0), (12, 23, 30)),
+        ("XZ", (1, 0, 0, 0, 0, -1), (12, 20, 27)),
+        ("YZ", (0, 1, 0, 0, 0, 1), (10, 22, 33)),
+    ],
+)
+def test_line_uses_sketch_frame(tmp_path: Path, plane, axes, expected):
+    session = FakeSession()
+    executor = NXOpenExecutor(session, FAKE_NXOPEN, "NX test", Workspace(tmp_path))
+    created = executor.execute("nx_create_sketch", {"plane": plane})
+    sketch = session.Parts.Work.Sketches.values[-1]
+    sketch.Origin = SimpleNamespace(X=10, Y=20, Z=30)
+    sketch.Orientation.Element = SimpleNamespace(
+        **dict(zip(("Xx", "Xy", "Xz", "Yx", "Yy", "Yz"), axes, strict=True))
+    )
+    executor.execute(
+        "nx_sketch_line",
+        {"sketch_id": created["object"]["id"], "start": {"x": 0, "y": 0}, "end": {"x": 2, "y": 3}},
+    )
+    assert sketch.geometry[0].start == (10, 20, 30)
+    assert sketch.geometry[0].end == expected
 
 
 def test_explicit_sketch_workflow_adds_geometry_to_the_referenced_sketch(tmp_path: Path):

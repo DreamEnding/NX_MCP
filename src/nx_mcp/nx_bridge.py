@@ -24,7 +24,7 @@ from nx_mcp.bridge import (
     refuse_live_descriptor,
 )
 from nx_mcp.runtime import NXToolError, ObjectKind
-from nx_mcp.workspace import Workspace, WorkspaceViolation
+from nx_mcp.workspace import Workspace, WorkspaceViolation, validate_step_destination
 
 
 class NXOpenExecutor:
@@ -364,6 +364,7 @@ class NXOpenExecutor:
     def _export_step(self, path: str) -> dict[str, Any]:
         part = self._work_part()
         destination = self.workspace.ensure_inside(path)
+        validate_step_destination(destination)
         destination.parent.mkdir(parents=True, exist_ok=True)
         # Translate into a temporary directory beside the destination and move the result
         # into place only once the translator wrote a non-empty file, so an earlier export
@@ -451,9 +452,17 @@ class NXOpenExecutor:
         start: dict[str, Any],
         end: dict[str, Any],
     ) -> dict[str, Any]:
-        start_point = self.nxopen.Point3d(float(start["x"]), float(start["y"]), 0.0)
-        end_point = self.nxopen.Point3d(float(end["x"]), float(end["y"]), 0.0)
-        curve = part.Curves.CreateLine(start_point, end_point)
+        origin, axes = sketch.Origin, sketch.Orientation.Element
+
+        def model_point(point: dict[str, Any]) -> Any:
+            x, y = float(point["x"]), float(point["y"])
+            return self.nxopen.Point3d(
+                origin.X + x * axes.Xx + y * axes.Yx,
+                origin.Y + x * axes.Xy + y * axes.Yy,
+                origin.Z + x * axes.Xz + y * axes.Yz,
+            )
+
+        curve = part.Curves.CreateLine(model_point(start), model_point(end))
         sketch.AddGeometry(curve, self.nxopen.Sketch.InferConstraintsOption.InferNoConstraints)
         return self._reference(curve, "curve", part, "Line")
 

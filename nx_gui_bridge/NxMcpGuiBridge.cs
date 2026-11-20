@@ -1246,6 +1246,12 @@ namespace NxMcp.GuiBridge
         {
             Part part = WorkPart(true);
             string destination = workspace.EnsureInside((string)values["path"]);
+            string extension = Path.GetExtension(destination);
+            if (!string.Equals(extension, ".step", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(extension, ".stp", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new NxToolError("NX_INVALID_ARGUMENT", "STEP output must have a .step or .stp extension");
+            }
             Directory.CreateDirectory(Path.GetDirectoryName(destination));
             // Translate into a temporary directory beside the destination and move the result
             // into place only once the translator wrote a non-empty file, so an earlier export
@@ -1364,9 +1370,19 @@ namespace NxMcp.GuiBridge
             return Number(((Dictionary<string, object>)point)[axis]);
         }
 
+        private static Point3d ModelPoint(Point3d origin, Matrix3x3 axes, double x, double y)
+        {
+            return new Point3d(
+                origin.X + x * axes.Xx + y * axes.Yx,
+                origin.Y + x * axes.Xy + y * axes.Yy,
+                origin.Z + x * axes.Xz + y * axes.Yz);
+        }
+
         private Dictionary<string, object> AddLine(Sketch sketch, Part part, double x1, double y1, double x2, double y2)
         {
-            Line line = part.Curves.CreateLine(new Point3d(x1, y1, 0.0), new Point3d(x2, y2, 0.0));
+            Point3d origin = sketch.Origin;
+            Matrix3x3 axes = sketch.Orientation.Element;
+            Line line = part.Curves.CreateLine(ModelPoint(origin, axes, x1, y1), ModelPoint(origin, axes, x2, y2));
             sketch.AddGeometry(line, Sketch.InferConstraintsOption.InferNoConstraints);
             return Reference(line, "curve", part, "Line");
         }
