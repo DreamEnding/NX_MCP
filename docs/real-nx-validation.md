@@ -1,5 +1,14 @@
 # Real NX validation gate
 
+## NX 2212 community report (2026-11-10)
+
+On NX 2212.3000 with embedded Python 3.10.6, a contributor ran the opt-in
+`python_batch` bridge at commit `4a7c881`. They created a part, sketched and
+extruded a rectangle, listed the bodies, saved the part and exported STEP.
+In the same batch session, the application stayed at `APP_NONE` and committing
+an MCD rigid body failed. GUI bridge behavior on this build remains unverified.
+See [issue #19](https://github.com/DreamEnding/NX_MCP/issues/19).
+
 ## M1 development validation (2026-09-30)
 
 The current development tree passed the NX2506 (`2506.4021`) Python batch
@@ -96,7 +105,10 @@ The journal `examples/nx_runtime_probe.py` uses only NXOpen and the standard
 library. It records `schema_version: 1`, UTC capture time, NX release, the
 installed `NXBIN/ugraf.exe` file version as `nx_build`, embedded Python and
 architecture, OS, `git_commit`, `git_dirty`, probe launch switches and import
-diagnostics. Git must be on the NX process's PATH. The executable version is
+diagnostics. If Git is missing from the NX process's PATH, the probe still
+writes its JSON with null Git fields and a `git_error` diagnostic. Add Git to
+that PATH and rerun the probe before collecting acceptance evidence.
+The executable version is
 read with the Windows version-resource API, rather than inferred from the
 release name. Use the same NX installation for the probe and live bridge.
 

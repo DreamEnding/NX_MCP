@@ -51,6 +51,20 @@ def test_runtime_probe_reports_exact_build_provenance_and_launch_mode(
     assert data["bridge_import_error"] is None
 
 
+def test_runtime_probe_writes_diagnostics_when_git_is_missing(probe, monkeypatch, tmp_path):
+    def missing_git(checkout):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr("nx_mcp.provenance.git_state", missing_git)
+    output = tmp_path / "probe.json"
+    monkeypatch.setenv("NX_MCP_PROBE_OUTPUT", str(output))
+    probe.main()
+    data = json.loads(output.read_text(encoding="utf-8"))
+    assert data["nx_build"] == "2506.4021"
+    assert data["git_commit"] is None and data["git_dirty"] is None
+    assert "PATH" in data["git_error"]
+
+
 @pytest.mark.parametrize("switches", ['"-nx"', "{}", "[1]"])
 def test_runtime_probe_rejects_malformed_launch_metadata(probe, monkeypatch, tmp_path, switches):
     output = tmp_path / "probe.json"

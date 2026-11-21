@@ -23,7 +23,7 @@ class Workspace:
     def resolve(self, relative_path: str) -> Path:
         requested = Path(relative_path)
         if requested.is_absolute() or PureWindowsPath(relative_path).anchor:
-            raise WorkspaceViolation("Path must stay inside the configured workspace")
+            raise WorkspaceViolation("Use a workspace path relative to NX_MCP_WORKSPACE")
 
         return self.ensure_inside(self.root / requested)
 

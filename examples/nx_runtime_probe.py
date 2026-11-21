@@ -37,7 +37,10 @@ def main() -> None:
         not isinstance(switches, list) or any(not isinstance(value, str) for value in switches)
     ):
         raise ValueError("NX_MCP_RUN_JOURNAL_SWITCHES must be a JSON string array or null")
-    git_commit, git_dirty = git_state(source_root.parent)
+    try:
+        git_commit, git_dirty = git_state(source_root.parent)
+    except FileNotFoundError:
+        git_commit, git_dirty = None, None
     result = {
         "schema_version": 1,
         "captured_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -54,6 +57,8 @@ def main() -> None:
         "mcp_available": importlib.util.find_spec("mcp") is not None,
         "bridge_import_error": bridge_import_error,
     }
+    if git_commit is None:
+        result["git_error"] = "Git executable missing from the NX process PATH"
     destination = Path(output)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(result, indent=2), encoding="utf-8")
